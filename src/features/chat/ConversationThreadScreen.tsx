@@ -1,0 +1,407 @@
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import {
+  getMessages,
+  sendMessage,
+  markRead,
+  escalate,
+  type Message,
+  type MessagesResponse,
+} from "@/api/endpoints/conversations";
+import { getConversation } from "@/api/endpoints/conversations";
+import { getOffers, makeOffer } from "@/api/endpoints/offers";
+import { colors, spacing, radii, fonts } from "@/theme";
+import { Text } from "@/components/ui/Text";
+import { formatNaira } from "@/lib/money";
+import { OFFER_STATUS_LABELS, OFFER_STATUS_CHIP_FAMILY } from "@/lib/escrow-labels";
+import { StatusChip } from "@/components/ui/StatusChip";
+import { joinConversation, leaveConversation, sendTyping } from "@/auth/realtime";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+export function ConversationThreadScreen() {
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const { id } = route.params;
+  const queryClient = useQueryClient();
+  const [text, setText] = useState("");
+  const [showOfferSheet, setShowOfferSheet] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
+  const listRef = useRef<FlatList>(null);
+
+  const { data: conversationDetail } = useQuery({
+    queryKey: ["conversation", id],
+    queryFn: () => getConversation(id),
+  });
+  const conversation = conversationDetail?.conversation;
+
+  const { data: offersData } = useQuery({
+    queryKey: ["offers", id],
+    queryFn: () => getOffers(id),
+  });
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["messages", id],
+    queryFn: ({ pageParam }) =>
+      getMessages(id, { before: pageParam as string | undefined }),
+    getNextPageParam: (last) => last.olderCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    select: (d) => ({
+      ...d,
+      pages: [...d.pages].reverse(),
+    }),
+  });
+
+  const messages = data?.pages.flatMap((p) => [...p.messages].reverse()) ?? [];
+
+  useEffect(() => {
+    joinConversation(id);
+    return () => leaveConversation(id);
+  }, [id]);
+
+  useEffect(() => {
+    if (conversation) {
+      navigation.setOptions({ title: conversation.counterpart.displayName });
+    }
+  }, [conversation]);
+
+  useEffect(() => {
+    markRead(id).catch(() => {});
+  }, [id, messages.length]);
+
+  const sendMutation = useMutation({
+    mutationFn: (t: string) => sendMessage(id, { body: t }),
+    onMutate: async (t: string) => {
+      await queryClient.cancelQueries({ queryKey: ["messages", id] });
+      const optimistic: Message = {
+        id: `opt-${Date.now()}`,
+        conversationId: id,
+        senderId: null,
+        senderType: "USER",
+        body: t,
+        offerId: null,
+        moderationFlags: [],
+        attachment: null,
+        readAt: null,
+        createdAt: new Date().toISOString(),
+        mine: true,
+      };
+      queryClient.setQueryData(
+        ["messages", id],
+        (old: InfiniteData<MessagesResponse> | undefined) => {
+          if (!old?.pages.length) return old;
+          const pages = [...old.pages];
+          // pages[0] is the most-recent page (no `before` cursor); append newest message to end
+          pages[0] = { ...pages[0], messages: [...pages[0].messages, optimistic] };
+          return { ...old, pages };
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+    },
+  });
+
+  const offerMutation = useMutation({
+    mutationFn: (amount: string) => makeOffer(id, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      setShowOfferSheet(false);
+      setOfferAmount("");
+    },
+  });
+
+  function handleSend() {
+    if (!text.trim()) return;
+    sendMutation.mutate(text.trim());
+    setText("");
+  }
+
+  const isLocked = conversation?.status === "LOCKED";
+  const activeOffer = offersData?.active ?? null;
+
+  function renderMessage({ item }: { item: Message }) {
+    const isOwn = item.mine;
+    return (
+      <View
+        style={[
+          styles.messageRow,
+          isOwn ? styles.ownRow : styles.theirRow,
+        ]}
+      >
+        <View
+          style={[
+            styles.bubble,
+            isOwn ? styles.ownBubble : styles.theirBubble,
+          ]}
+        >
+          {item.body && (
+            <Text
+              variant="body"
+              style={isOwn ? styles.ownText : styles.theirText}
+            >
+              {item.body}
+            </Text>
+          )}
+          {item.attachment && (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("AttachmentViewer", {
+                  objectId: item.attachment!.objectId,
+                  conversationId: id,
+                })
+              }
+            >
+              <Text style={[styles.attachmentLabel, isOwn ? styles.ownText : {}]}>
+                📎 {item.attachment.type === "IMAGE" ? "Photo" : "Document"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.timestamp, isOwn ? { color: "rgba(255,255,255,0.7)" } : {}]}>
+            {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={88}
+    >
+      {/* Active offer banner */}
+      {activeOffer && (
+        <View style={styles.offerBanner}>
+          <Text variant="bodySm" style={{ fontWeight: "600" }}>
+            Active offer: {formatNaira(activeOffer.amount)}
+          </Text>
+          <StatusChip
+            label={OFFER_STATUS_LABELS[activeOffer.status]}
+            family={OFFER_STATUS_CHIP_FAMILY[activeOffer.status]}
+          />
+        </View>
+      )}
+
+      <FlatList
+        ref={listRef}
+        data={isLoading ? [] : messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMessage}
+        contentContainerStyle={styles.messageList}
+        inverted
+        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          isLoading ? (
+            <ActivityIndicator color={colors.blue} style={{ padding: 20 }} />
+          ) : null
+        }
+      />
+
+      {/* Offer sheet */}
+      {showOfferSheet && !isLocked && (
+        <View style={styles.offerSheet}>
+          <Text variant="label" style={{ marginBottom: 8 }}>Make an offer</Text>
+          <View style={styles.offerInput}>
+            <Text style={styles.nairaPrefix}>₦</Text>
+            <TextInput
+              style={styles.offerTextField}
+              placeholder="500,000,000"
+              keyboardType="numeric"
+              value={offerAmount}
+              onChangeText={setOfferAmount}
+              placeholderTextColor={colors.placeholder}
+            />
+          </View>
+          <View style={styles.offerActions}>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setShowOfferSheet(false)}
+            >
+              <Text variant="bodySm" muted>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sendOfferBtn}
+              onPress={() => offerMutation.mutate(offerAmount)}
+            >
+              <Text style={styles.sendOfferText}>
+                {offerMutation.isPending ? "Sending…" : "Send offer"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Composer */}
+      {!isLocked ? (
+        <View style={styles.composer}>
+          <TouchableOpacity
+            style={styles.offerBtn}
+            onPress={() => setShowOfferSheet(!showOfferSheet)}
+          >
+            <Text style={styles.composerIcon}>💰</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.composerInput, { maxHeight: 100 }]}
+            placeholder="Message…"
+            placeholderTextColor={colors.placeholder}
+            value={text}
+            onChangeText={(t) => {
+              setText(t);
+              sendTyping(id, t.length > 0);
+            }}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={!text.trim() || sendMutation.isPending}
+          >
+            <Text style={styles.sendIcon}>➤</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.lockedBanner}>
+          <Text variant="bodySm" muted center>
+            🔒 This conversation is locked
+          </Text>
+        </View>
+      )}
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  offerBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: spacing.base,
+    backgroundColor: colors.goldSoft,
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+  },
+  messageList: { padding: spacing.base, paddingBottom: spacing.xl },
+  messageRow: { marginBottom: 8 },
+  ownRow: { alignItems: "flex-end" },
+  theirRow: { alignItems: "flex-start" },
+  bubble: {
+    maxWidth: "78%",
+    padding: spacing.sm,
+    borderRadius: radii.card,
+  },
+  ownBubble: {
+    backgroundColor: colors.blueSoft,
+    borderBottomRightRadius: 4,
+  },
+  theirBubble: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderBottomLeftRadius: 4,
+  },
+  ownText: { color: colors.blueInk },
+  theirText: { color: colors.ink },
+  attachmentLabel: { color: colors.blue, fontWeight: "600" },
+  timestamp: { fontSize: 11, color: colors.muted, marginTop: 4, alignSelf: "flex-end" },
+  offerSheet: {
+    backgroundColor: colors.paper,
+    padding: spacing.base,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+  },
+  offerInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.bg,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.base,
+    height: 48,
+    marginBottom: spacing.sm,
+  },
+  nairaPrefix: { color: colors.muted, marginRight: 4, fontSize: 16 },
+  offerTextField: {
+    flex: 1,
+    fontFamily: fonts.hankenRegular,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  offerActions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  cancelBtn: { padding: 8 },
+  sendOfferBtn: {
+    backgroundColor: colors.blueDeep,
+    borderRadius: radii.chip,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sendOfferText: { color: colors.paper, fontWeight: "600" },
+  composer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    padding: spacing.sm,
+    backgroundColor: "rgba(246,248,250,0.92)",
+    borderTopWidth: 1,
+    borderColor: colors.line,
+    gap: spacing.sm,
+  },
+  offerBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  composerIcon: { fontSize: 20 },
+  composerInput: {
+    flex: 1,
+    backgroundColor: colors.paper,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.base,
+    paddingVertical: 10,
+    fontFamily: fonts.hankenRegular,
+    fontSize: 15,
+    color: colors.ink,
+    minHeight: 40,
+  },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    backgroundColor: colors.blueDeep,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: { opacity: 0.4 },
+  sendIcon: { color: colors.paper, fontSize: 16 },
+  lockedBanner: {
+    padding: spacing.base,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+  },
+});

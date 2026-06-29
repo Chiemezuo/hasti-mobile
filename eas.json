@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 10.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development",
+        "API_BASE_URL": "https://staging-api.hasti.ng/api/v1"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "preview",
+        "API_BASE_URL": "https://staging-api.hasti.ng/api/v1"
+      }
+    },
+    "production": {
+      "env": {
+        "APP_ENV": "production",
+        "API_BASE_URL": "https://api.hasti.ng/api/v1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
