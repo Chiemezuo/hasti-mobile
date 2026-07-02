@@ -26,8 +26,8 @@ import { KycScreen } from "@/features/kyc/KycScreen";
 import { NotificationPrefsScreen } from "@/features/notifications/NotificationPrefsScreen";
 import { NotificationsScreen } from "@/features/notifications/NotificationsScreen";
 import { Text } from "@/components/ui/Text";
-import { useQuery } from "@tanstack/react-query";
-import { getUnreadCount } from "@/api/endpoints/notifications";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getConversations } from "@/api/endpoints/conversations";
 
 const Tab = createBottomTabNavigator();
 
@@ -118,11 +118,18 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 export function UserTabs() {
-  const { data } = useQuery({
-    queryKey: ["unread-count"],
-    queryFn: getUnreadCount,
+  const { data: conversationsData } = useInfiniteQuery({
+    queryKey: ["conversations"],
+    queryFn: ({ pageParam }) => getConversations(pageParam as string | undefined),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
     refetchInterval: 30_000,
   });
+
+  const totalUnread =
+    conversationsData?.pages
+      .flatMap((p) => p.items)
+      .reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   return (
     <Tab.Navigator
@@ -165,7 +172,7 @@ export function UserTabs() {
         })}
         options={{
           title: "Chats",
-          tabBarBadge: (data?.count ?? 0) > 0 ? data?.count : undefined,
+          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
           tabBarIcon: ({ focused }) => <TabIcon name="Chats" focused={focused} />,
         }}
       />

@@ -33,12 +33,14 @@ import { putToStorage, getContentType } from "@/lib/upload";
 import { getAccessToken } from "@/auth/token-store";
 import { API_BASE } from "@/api/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useAuthStore } from "@/auth/store";
 
 export function ConversationThreadScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { id } = route.params;
   const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [text, setText] = useState("");
   const [showOfferSheet, setShowOfferSheet] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
@@ -235,6 +237,10 @@ export function ConversationThreadScreen() {
 
   const isLocked = conversation?.status === "LOCKED";
   const activeOffer = offersData?.active ?? null;
+  // Derive ownership from makerId rather than the server's `mine` flag, which
+  // can be unreliable depending on how the backend computes it per role.
+  const activeOfferIsMine =
+    activeOffer !== null && currentUserId !== undefined && activeOffer.makerId === currentUserId;
 
   function renderMessage({ item }: { item: Message }) {
     const isOwn = item.mine;
@@ -308,14 +314,14 @@ export function ConversationThreadScreen() {
         <View style={styles.offerBanner}>
           <View style={styles.offerBannerLeft}>
             <Text variant="bodySm" style={{ fontWeight: "600" }}>
-              {activeOffer.mine ? "Your offer" : "Offer received"}: {formatNaira(activeOffer.amount)}
+              {activeOfferIsMine ? "Your offer" : "Offer received"}: {formatNaira(activeOffer.amount)}
             </Text>
             <StatusChip
               label={OFFER_STATUS_LABELS[activeOffer.status]}
               family={OFFER_STATUS_CHIP_FAMILY[activeOffer.status]}
             />
           </View>
-          {activeOffer.status === "PENDING" && !activeOffer.mine && (
+          {activeOffer.status === "PENDING" && !activeOfferIsMine && (
             <View style={styles.offerBannerActions}>
               <TouchableOpacity
                 style={styles.offerActionBtn}
@@ -342,7 +348,7 @@ export function ConversationThreadScreen() {
               </TouchableOpacity>
             </View>
           )}
-          {activeOffer.status === "PENDING" && activeOffer.mine && (
+          {activeOffer.status === "PENDING" && activeOfferIsMine && (
             <TouchableOpacity
               style={styles.offerActionBtn}
               onPress={() => withdrawMutation.mutate(activeOffer.id)}
