@@ -22,7 +22,7 @@ import {
   type MessagesResponse,
 } from "@/api/endpoints/conversations";
 import { getConversation } from "@/api/endpoints/conversations";
-import { getOffers, makeOffer } from "@/api/endpoints/offers";
+import { getOffers, makeOffer, acceptOffer, counterOffer, rejectOffer, withdrawOffer } from "@/api/endpoints/offers";
 import { colors, spacing, radii, fonts } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { formatNaira } from "@/lib/money";
@@ -42,6 +42,7 @@ export function ConversationThreadScreen() {
   const [text, setText] = useState("");
   const [showOfferSheet, setShowOfferSheet] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  const [offerMode, setOfferMode] = useState<"new" | "counter">("new");
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const [authHeader, setAuthHeader] = useState<Record<string, string>>({});
   const listRef = useRef<FlatList>(null);
@@ -107,7 +108,12 @@ export function ConversationThreadScreen() {
   }, [conversation]);
 
   useEffect(() => {
-    markRead(id).catch(() => {});
+    markRead(id)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["unread-count"] });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      })
+      .catch(() => {});
   }, [id, messages.length]);
 
   const sendMutation = useMutation({
@@ -151,8 +157,46 @@ export function ConversationThreadScreen() {
     mutationFn: (amount: string) => makeOffer(id, amount),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
       setShowOfferSheet(false);
       setOfferAmount("");
+      setOfferMode("new");
+    },
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: (offerId: string) => acceptOffer(offerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+    },
+  });
+
+  const counterMutation = useMutation({
+    mutationFn: ({ offerId, amount }: { offerId: string; amount: string }) =>
+      counterOffer(offerId, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+      setShowOfferSheet(false);
+      setOfferAmount("");
+      setOfferMode("new");
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (offerId: string) => rejectOffer(offerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+    },
+  });
+
+  const withdrawMutation = useMutation({
+    mutationFn: (offerId: string) => withdrawOffer(offerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
     },
   });
 
@@ -262,13 +306,51 @@ export function ConversationThreadScreen() {
       {/* Active offer banner */}
       {activeOffer && (
         <View style={styles.offerBanner}>
-          <Text variant="bodySm" style={{ fontWeight: "600" }}>
-            Active offer: {formatNaira(activeOffer.amount)}
-          </Text>
-          <StatusChip
-            label={OFFER_STATUS_LABELS[activeOffer.status]}
-            family={OFFER_STATUS_CHIP_FAMILY[activeOffer.status]}
-          />
+          <View style={styles.offerBannerLeft}>
+            <Text variant="bodySm" style={{ fontWeight: "600" }}>
+              {activeOffer.mine ? "Your offer" : "Offer received"}: {formatNaira(activeOffer.amount)}
+            </Text>
+            <StatusChip
+              label={OFFER_STATUS_LABELS[activeOffer.status]}
+              family={OFFER_STATUS_CHIP_FAMILY[activeOffer.status]}
+            />
+          </View>
+          {activeOffer.status === "PENDING" && !activeOffer.mine && (
+            <View style={styles.offerBannerActions}>
+              <TouchableOpacity
+                style={styles.offerActionBtn}
+                onPress={() => acceptMutation.mutate(activeOffer.id)}
+                disabled={acceptMutation.isPending || rejectMutation.isPending}
+              >
+                <Text style={styles.offerActionAccept}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.offerActionBtn}
+                onPress={() => {
+                  setOfferMode("counter");
+                  setShowOfferSheet(true);
+                }}
+              >
+                <Text style={styles.offerActionCounter}>Counter</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.offerActionBtn}
+                onPress={() => rejectMutation.mutate(activeOffer.id)}
+                disabled={acceptMutation.isPending || rejectMutation.isPending}
+              >
+                <Text style={styles.offerActionReject}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {activeOffer.status === "PENDING" && activeOffer.mine && (
+            <TouchableOpacity
+              style={styles.offerActionBtn}
+              onPress={() => withdrawMutation.mutate(activeOffer.id)}
+              disabled={withdrawMutation.isPending}
+            >
+              <Text style={styles.offerActionWithdraw}>Withdraw</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -291,7 +373,9 @@ export function ConversationThreadScreen() {
       {/* Offer sheet */}
       {showOfferSheet && !isLocked && (
         <View style={styles.offerSheet}>
-          <Text variant="label" style={{ marginBottom: 8 }}>Make an offer</Text>
+          <Text variant="label" style={{ marginBottom: 8 }}>
+            {offerMode === "counter" ? "Counter offer" : "Make an offer"}
+          </Text>
           <View style={styles.offerInput}>
             <Text style={styles.nairaPrefix}>₦</Text>
             <TextInput
@@ -306,16 +390,27 @@ export function ConversationThreadScreen() {
           <View style={styles.offerActions}>
             <TouchableOpacity
               style={styles.cancelBtn}
-              onPress={() => setShowOfferSheet(false)}
+              onPress={() => {
+                setShowOfferSheet(false);
+                setOfferAmount("");
+                setOfferMode("new");
+              }}
             >
               <Text variant="bodySm" muted>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.sendOfferBtn}
-              onPress={() => offerMutation.mutate(offerAmount)}
+              onPress={() => {
+                if (offerMode === "counter" && activeOffer) {
+                  counterMutation.mutate({ offerId: activeOffer.id, amount: offerAmount });
+                } else {
+                  offerMutation.mutate(offerAmount);
+                }
+              }}
+              disabled={offerMutation.isPending || counterMutation.isPending}
             >
               <Text style={styles.sendOfferText}>
-                {offerMutation.isPending ? "Sending…" : "Send offer"}
+                {offerMutation.isPending || counterMutation.isPending ? "Sending…" : "Send"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -325,12 +420,17 @@ export function ConversationThreadScreen() {
       {/* Composer */}
       {!isLocked ? (
         <View style={styles.composer}>
-          <TouchableOpacity
-            style={styles.composerIconBtn}
-            onPress={() => setShowOfferSheet(!showOfferSheet)}
-          >
-            <Text style={styles.composerIcon}>💰</Text>
-          </TouchableOpacity>
+          {!activeOffer && (
+            <TouchableOpacity
+              style={styles.composerIconBtn}
+              onPress={() => {
+                setOfferMode("new");
+                setShowOfferSheet(!showOfferSheet);
+              }}
+            >
+              <Text style={styles.composerIcon}>💰</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.composerIconBtn}
             onPress={handleAttachment}
@@ -382,7 +482,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldSoft,
     borderBottomWidth: 1,
     borderColor: colors.line,
+    gap: spacing.sm,
+    flexWrap: "wrap",
   },
+  offerBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  offerBannerActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  offerActionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paper,
+  },
+  offerActionAccept: { color: "#22a861", fontWeight: "700", fontSize: 13 },
+  offerActionCounter: { color: colors.blueDeep, fontWeight: "700", fontSize: 13 },
+  offerActionReject: { color: colors.error, fontWeight: "700", fontSize: 13 },
+  offerActionWithdraw: { color: colors.muted, fontWeight: "600", fontSize: 13 },
   messageList: { padding: spacing.base, paddingBottom: spacing.xl },
   messageRow: { marginBottom: 8 },
   ownRow: { alignItems: "flex-end" },
