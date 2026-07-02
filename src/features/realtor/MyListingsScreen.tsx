@@ -9,6 +9,7 @@ import {
 import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
 import { getMyListings } from "@/api/endpoints/realtor";
+import { getPropertyById } from "@/api/endpoints/properties";
 import { mediaUrl } from "@/lib/upload";
 import { colors, spacing, radii } from "@/theme";
 import { Text } from "@/components/ui/Text";
@@ -19,6 +20,30 @@ import { formatNaira } from "@/lib/money";
 import { PROPERTY_STATUS_LABELS, PROPERTY_STATUS_CHIP_FAMILY } from "@/lib/escrow-labels";
 import { useNavigation } from "@react-navigation/native";
 import { useKycApproved } from "@/auth/store";
+
+function ListingThumbnail({ id }: { id: string }) {
+  const { data } = useQuery({
+    queryKey: ["property", id],
+    queryFn: () => getPropertyById(id),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const firstImage = data?.media.find(
+    (m) => m.type === "IMAGE" && m.status === "READY"
+  );
+
+  if (!firstImage) {
+    return <Text style={{ fontSize: 28 }}>🏠</Text>;
+  }
+
+  return (
+    <Image
+      source={{ uri: mediaUrl(firstImage.thumbnailKeys?.["400"] ?? firstImage.key) }}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+    />
+  );
+}
 
 export function MyListingsScreen() {
   const navigation = useNavigation<any>();
@@ -45,15 +70,7 @@ export function MyListingsScreen() {
               onPress={() => navigation.navigate("EditListing", { id: item.id })}
             >
               <View style={styles.thumbnail}>
-                {item.coverImage ? (
-                  <Image
-                    source={{ uri: mediaUrl(item.coverImage.thumbnailKeys?.["400"] ?? item.coverImage.key) }}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Text style={{ fontSize: 28 }}>🏠</Text>
-                )}
+                <ListingThumbnail id={item.id} />
               </View>
               <View style={styles.rowContent}>
                 <Text variant="body" style={styles.title} numberOfLines={1}>

@@ -14,10 +14,6 @@ export interface ListingSummary {
   city: string;
   state: string;
   createdAt: string;
-  coverImage?: {
-    key: string;
-    thumbnailKeys?: Record<string, string> | null;
-  } | null;
 }
 
 export interface CreateListingInput {
