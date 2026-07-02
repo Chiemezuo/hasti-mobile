@@ -33,7 +33,7 @@ import { StatusChip } from "@/components/ui/StatusChip";
 import { joinConversation, leaveConversation, sendTyping } from "@/auth/realtime";
 import { putToStorage, getContentType } from "@/lib/upload";
 import { getAccessToken } from "@/auth/token-store";
-import { API_BASE } from "@/api/client";
+import { API_BASE, ApiError } from "@/api/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuthStore } from "@/auth/store";
 
@@ -48,6 +48,7 @@ export function ConversationThreadScreen() {
   const [offerAmount, setOfferAmount] = useState("");
   const [offerMode, setOfferMode] = useState<"new" | "counter">("new");
   const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [lockedTxId, setLockedTxId] = useState<string | null>(null);
   const [authHeader, setAuthHeader] = useState<Record<string, string>>({});
   const listRef = useRef<FlatList>(null);
 
@@ -86,6 +87,7 @@ export function ConversationThreadScreen() {
   });
 
   const messages = data?.pages.flatMap((p) => [...p.messages].reverse()) ?? [];
+  const latestMessageId = messages[0]?.id;
 
   // Poll every 3 s while any image attachment is still processing so the
   // "Processing…" pill flips to the actual thumbnail without needing a new message.
@@ -111,10 +113,8 @@ export function ConversationThreadScreen() {
     }
   }, [conversation]);
 
+  // Eagerly zero the badge in local cache so it clears the moment the screen opens.
   useEffect(() => {
-    // Zero out the unread count in the local cache immediately when the
-    // conversation opens — don't wait for markRead to succeed so the badge
-    // clears even if the server call is slow or temporarily fails.
     queryClient.setQueriesData<InfiniteData<ConversationsResponse>>(
       { queryKey: ["conversations"] },
       (old) => {
@@ -130,9 +130,16 @@ export function ConversationThreadScreen() {
         };
       }
     );
-    // Notify the server in the background.
-    markRead(id).catch((err) => console.warn("[markRead]", err));
   }, [id]);
+
+  // Tell the server which message we've read up to. Runs once messages load and
+  // again whenever a newer message appears (latestMessageId changes). Without a
+  // valid upToMessageId the server returns 422 and never persists the read state,
+  // which causes the badge to reappear on the next polling refetch.
+  useEffect(() => {
+    if (!latestMessageId) return;
+    markRead(id, latestMessageId).catch((err) => console.warn("[markRead]", err));
+  }, [id, latestMessageId]);
 
   const sendMutation = useMutation({
     mutationFn: (t: string) => sendMessage(id, { body: t }),
@@ -220,17 +227,39 @@ export function ConversationThreadScreen() {
 
   const lockDealMutation = useMutation({
     mutationFn: (offerId: string) => openTransaction(offerId),
-    onSuccess: () => {
+    onSuccess: (tx) => {
+      setLockedTxId(tx.id);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["offers", id] });
-      Alert.alert(
-        "Deal created!",
-        "Your escrow deal has been initiated. Go to your Deals tab to view payment instructions and fund it.",
-        [{ text: "OK" }]
-      );
+      // getParent() targets the Tab navigator directly; navigate("DealsTab") from
+      // inside ChatsStack can silently fail if the action doesn't bubble correctly.
+      navigation.getParent()?.navigate("DealsTab");
     },
-    onError: () => {
-      Alert.alert("Error", "Could not initiate the deal. It may already exist — check your Deals tab.");
+    onError: (err) => {
+      if (err instanceof ApiError && err.problem.status === 409) {
+        // Deal already exists — invalidate so Deals tab shows it, then go there.
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        navigation.getParent()?.navigate("DealsTab");
+      } else if (err instanceof ApiError && err.problem.status === 403) {
+        // KYC not approved — offer to take the buyer to the verification screen.
+        Alert.alert(
+          "Identity verification required",
+          "You need to complete identity verification before initiating a deal.",
+          [
+            { text: "Not now", style: "cancel" },
+            {
+              text: "Verify identity",
+              onPress: () =>
+                navigation.getParent()?.navigate("AccountTab", { screen: "Kyc" }),
+            },
+          ]
+        );
+      } else {
+        const msg = err instanceof ApiError
+          ? err.problem.title
+          : "Network error — please try again.";
+        Alert.alert("Could not start deal", msg);
+      }
     },
   });
 
@@ -407,15 +436,21 @@ export function ConversationThreadScreen() {
             />
           </View>
           {isBuyer ? (
-            <TouchableOpacity
-              style={styles.lockDealBtn}
-              onPress={() => lockDealMutation.mutate(agreedOffer.id)}
-              disabled={lockDealMutation.isPending}
-            >
-              <Text style={styles.lockDealText}>
-                {lockDealMutation.isPending ? "Initiating…" : "Lock in deal"}
+            lockedTxId ? (
+              <Text variant="bodySm" style={{ color: "#22a861", fontWeight: "600" }}>
+                Deal initiated ✓
               </Text>
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.lockDealBtn}
+                onPress={() => lockDealMutation.mutate(agreedOffer.id)}
+                disabled={lockDealMutation.isPending}
+              >
+                <Text style={styles.lockDealText}>
+                  {lockDealMutation.isPending ? "Initiating…" : "Lock in deal"}
+                </Text>
+              </TouchableOpacity>
+            )
           ) : (
             <Text variant="bodySm" muted>Awaiting buyer</Text>
           )}

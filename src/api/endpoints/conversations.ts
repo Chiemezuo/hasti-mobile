@@ -103,10 +103,11 @@ export async function sendMessage(
   });
 }
 
-export async function markRead(conversationId: string): Promise<void> {
+export async function markRead(conversationId: string, upToMessageId: string): Promise<void> {
   await apiFetch({
     path: `/conversations/${conversationId}/read`,
     method: "POST",
+    body: JSON.stringify({ upToMessageId }),
   });
 }
 

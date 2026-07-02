@@ -30,6 +30,7 @@ import {
   type TransactionStatus,
 } from "@/lib/escrow-labels";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 
@@ -65,6 +66,7 @@ export function EscrowReceiptScreen() {
   const route = useRoute<any>();
   const { id } = route.params;
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
 
@@ -107,7 +109,7 @@ export function EscrowReceiptScreen() {
   if (isLoading) {
     return (
       <ScrollView style={styles.container}>
-        <View style={[styles.darkHeader, { paddingTop: insets.top + 60 }]}>
+        <View style={[styles.darkHeader, { paddingTop: headerHeight + spacing.base }]}>
           <Skeleton height={48} width="60%" style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
         </View>
         <View style={styles.body}>
@@ -135,7 +137,7 @@ export function EscrowReceiptScreen() {
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Dark header panel */}
-        <View style={[styles.darkHeader, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.darkHeader, { paddingTop: headerHeight + spacing.base }]}>
           {/* Eyebrow */}
           <View style={styles.eyebrowRow}>
             <View style={styles.goldRule} />
