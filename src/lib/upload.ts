@@ -37,6 +37,8 @@ export function mediaUrl(key: string): string {
   return `${STORAGE_BASE_URL}/${key}`;
 }
 
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+
 export async function putToStorage(
   presignUrl: string,
   fileUri: string,
@@ -56,6 +58,12 @@ export async function putToStorage(
     tempFile = `${cache}hasti_upload_${Date.now()}.${ext}`;
     await FileSystem.copyAsync({ from: fileUri, to: tempFile });
     uploadUri = tempFile;
+  }
+
+  const fileInfo = await FileSystem.getInfoAsync(uploadUri);
+  if (fileInfo.exists && fileInfo.size > MAX_UPLOAD_BYTES) {
+    if (tempFile) FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
+    throw new Error("File exceeds the 100 MB upload limit.");
   }
 
   try {

@@ -71,7 +71,7 @@ export function ProfileScreen() {
   const initials = user?.profile?.displayName?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Avatar */}
         <View style={styles.avatarSection}>

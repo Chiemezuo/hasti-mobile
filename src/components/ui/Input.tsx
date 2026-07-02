@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, spacing, fonts, fontSizes } from "@/theme";
 import { Text } from "./Text";
 
@@ -24,9 +25,11 @@ export function Input({
   rightElement,
   containerStyle,
   style,
+  secureTextEntry,
   ...props
 }: InputProps) {
   const [focused, setFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -50,8 +53,22 @@ export function Input({
           placeholderTextColor={colors.placeholder}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          secureTextEntry={secureTextEntry && !showPassword}
           {...props}
         />
+        {secureTextEntry ? (
+          <TouchableOpacity
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.eyeBtn}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={colors.muted}
+            />
+          </TouchableOpacity>
+        ) : null}
         {rightElement}
       </View>
       {error ? (
@@ -97,6 +114,9 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.ink,
     paddingVertical: 12,
+  },
+  eyeBtn: {
+    paddingHorizontal: 4,
   },
   errorText: {
     color: colors.error,

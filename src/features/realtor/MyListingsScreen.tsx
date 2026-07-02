@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
+import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
 import { getMyListings } from "@/api/endpoints/realtor";
+import { mediaUrl } from "@/lib/upload";
 import { colors, spacing, radii } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -43,7 +45,15 @@ export function MyListingsScreen() {
               onPress={() => navigation.navigate("EditListing", { id: item.id })}
             >
               <View style={styles.thumbnail}>
-                <Text style={{ fontSize: 28 }}>🏠</Text>
+                {item.coverImage ? (
+                  <Image
+                    source={{ uri: mediaUrl(item.coverImage.thumbnailKeys?.["400"] ?? item.coverImage.key) }}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Text style={{ fontSize: 28 }}>🏠</Text>
+                )}
               </View>
               <View style={styles.rowContent}>
                 <Text variant="body" style={styles.title} numberOfLines={1}>

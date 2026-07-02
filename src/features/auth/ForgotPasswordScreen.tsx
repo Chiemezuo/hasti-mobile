@@ -49,7 +49,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.container}>
         <Text variant="h2" style={styles.title}>Reset password</Text>

@@ -44,7 +44,7 @@ export function ResetPasswordScreen({ route, navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.container}>
         <Text variant="h2" style={styles.title}>New password</Text>
         <Text variant="body" muted style={styles.subtitle}>
