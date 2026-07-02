@@ -329,7 +329,7 @@ export function ConversationThreadScreen() {
               )}
             </TouchableOpacity>
           )}
-          <Text style={[styles.timestamp, isOwn ? { color: "rgba(255,255,255,0.7)" } : {}]}>
+          <Text style={styles.timestamp}>
             {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </Text>
         </View>
