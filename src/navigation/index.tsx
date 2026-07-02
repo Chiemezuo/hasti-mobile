@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, type LinkingOptions } from "@react-navigation/native";
 import { useAuthStore } from "@/auth/store";
 import { getMe } from "@/api/endpoints/account";
 import { getAccessToken } from "@/auth/token-store";
@@ -9,6 +9,40 @@ import { UserTabs } from "./UserTabs";
 import { RealtorTabs } from "./RealtorTabs";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "@/theme";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const linking: LinkingOptions<any> = {
+  prefixes: ["hasti://"],
+  config: {
+    screens: {
+      // ── User tabs ────────────────────────────────────────────
+      DiscoverTab: {
+        screens: {
+          ListingDetail: "listing/:id",
+        },
+      },
+      ChatsTab: {
+        screens: {
+          ConversationThread: "chat/:id",
+        },
+      },
+      DealsTab: {
+        screens: {
+          EscrowReceipt: "deal/:id",
+        },
+      },
+      // ── Realtor tabs ─────────────────────────────────────────
+      LeadsTab: {
+        screens: {
+          ConversationThread: "chat/:id",
+        },
+      },
+      // ── Auth screens ─────────────────────────────────────────
+      Login: "login",
+      Register: "register",
+    },
+  },
+};
 
 export function RootNavigator() {
   const { user, isLoading, setUser, setLoading } = useAuthStore();
@@ -42,7 +76,7 @@ export function RootNavigator() {
   const isRealtor = user?.roles.includes("REALTOR") ?? false;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       {!user ? <AuthStack /> : isRealtor ? <RealtorTabs /> : <UserTabs />}
     </NavigationContainer>
   );

@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/Text";
 import { ListingCard } from "@/components/ui/ListingCard";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { useNavigation } from "@react-navigation/native";
+import { useDiscoveryStore, filtersToSearchFilter, hasActiveFilters } from "./discoveryStore";
 
 const DISCOVERY_CAP = 120;
 
@@ -25,6 +26,8 @@ export function DiscoverScreen() {
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
+  const { filters } = useDiscoveryStore();
+  const filtersActive = hasActiveFilters(filters);
 
   const {
     data,
@@ -35,10 +38,10 @@ export function DiscoverScreen() {
     refetch,
     isRefetching,
   } = useInfiniteQuery({
-    queryKey: ["properties", submittedSearch],
+    queryKey: ["properties", submittedSearch, filters],
     queryFn: ({ pageParam }) =>
       getProperties({
-        q: submittedSearch || undefined,
+        ...filtersToSearchFilter(filters, submittedSearch || undefined),
         cursor: pageParam as string | undefined,
         limit: 20,
       }),
@@ -110,10 +113,11 @@ export function DiscoverScreen() {
           ) : null}
         </View>
         <TouchableOpacity
-          style={styles.filterBtn}
+          style={[styles.filterBtn, filtersActive && styles.filterBtnActive]}
           onPress={() => navigation.navigate("Filters")}
         >
           <Text style={styles.filterIcon}>⚙️</Text>
+          {filtersActive && <View style={styles.filterDot} />}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.mapBtn}
@@ -203,6 +207,14 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
+  },
+  filterBtnActive: { borderColor: colors.blueDeep, backgroundColor: colors.blueSoft },
+  filterDot: {
+    position: "absolute",
+    top: 6, right: 6,
+    width: 8, height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.blueDeep,
   },
   filterIcon: { fontSize: 18 },
   mapBtn: {
