@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -10,12 +10,14 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
   getMessages,
   sendMessage,
   markRead,
-  escalate,
+  presignAttachment,
   type Message,
   type MessagesResponse,
 } from "@/api/endpoints/conversations";
@@ -27,6 +29,9 @@ import { formatNaira } from "@/lib/money";
 import { OFFER_STATUS_LABELS, OFFER_STATUS_CHIP_FAMILY } from "@/lib/escrow-labels";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { joinConversation, leaveConversation, sendTyping } from "@/auth/realtime";
+import { putToStorage, getContentType } from "@/lib/upload";
+import { getAccessToken } from "@/auth/token-store";
+import { API_BASE } from "@/api/client";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 export function ConversationThreadScreen() {
@@ -37,7 +42,15 @@ export function ConversationThreadScreen() {
   const [text, setText] = useState("");
   const [showOfferSheet, setShowOfferSheet] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [authHeader, setAuthHeader] = useState<Record<string, string>>({});
   const listRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    getAccessToken().then((token) => {
+      if (token) setAuthHeader({ Authorization: `Bearer ${token}` });
+    });
+  }, []);
 
   const { data: conversationDetail } = useQuery({
     queryKey: ["conversation", id],
@@ -68,6 +81,19 @@ export function ConversationThreadScreen() {
   });
 
   const messages = data?.pages.flatMap((p) => [...p.messages].reverse()) ?? [];
+
+  // Poll every 3 s while any image attachment is still processing so the
+  // "Processing…" pill flips to the actual thumbnail without needing a new message.
+  const hasPendingImages = messages.some(
+    (m) => m.attachment?.type === "IMAGE" && m.attachment?.status === "PENDING"
+  );
+  useEffect(() => {
+    if (!hasPendingImages) return;
+    const timer = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [hasPendingImages, id]);
 
   useEffect(() => {
     joinConversation(id);
@@ -136,6 +162,33 @@ export function ConversationThreadScreen() {
     setText("");
   }
 
+  async function handleAttachment() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    const contentType = asset.mimeType ?? getContentType(asset.uri);
+    setAttachmentUploading(true);
+    try {
+      const { url, key } = await presignAttachment(id, contentType);
+      await putToStorage(url, asset.uri, contentType);
+      const name = asset.fileName ?? asset.uri.split("/").pop() ?? "photo.jpg";
+      await sendMessage(id, {
+        attachment: { key, type: "IMAGE", name },
+      });
+      queryClient.invalidateQueries({ queryKey: ["messages", id] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } catch (err) {
+      console.error("[attachment]", err);
+      Alert.alert("Upload failed", "Could not send the photo. Please try again.");
+    } finally {
+      setAttachmentUploading(false);
+    }
+  }
+
   const isLocked = conversation?.status === "LOCKED";
   const activeOffer = offersData?.active ?? null;
 
@@ -170,10 +223,26 @@ export function ConversationThreadScreen() {
                   conversationId: id,
                 })
               }
+              activeOpacity={0.85}
             >
-              <Text style={[styles.attachmentLabel, isOwn ? styles.ownText : {}]}>
-                📎 {item.attachment.type === "IMAGE" ? "Photo" : "Document"}
-              </Text>
+              {item.attachment.type === "IMAGE" && item.attachment.status === "READY" ? (
+                <Image
+                  source={{
+                    uri: `${API_BASE}/conversations/${id}/attachments/${item.attachment.objectId}?v=thumb`,
+                    headers: authHeader,
+                  }}
+                  style={styles.attachmentImage}
+                  contentFit="cover"
+                  cachePolicy="none"
+                />
+              ) : (
+                <View style={styles.attachmentPill}>
+                  <Text style={[styles.attachmentLabel, isOwn ? styles.ownText : {}]}>
+                    {item.attachment.type === "IMAGE" ? "🖼️" : "📄"}{" "}
+                    {item.attachment.status === "PENDING" ? "Processing…" : item.attachment.type === "IMAGE" ? "Photo" : "Document"}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           )}
           <Text style={[styles.timestamp, isOwn ? { color: "rgba(255,255,255,0.7)" } : {}]}>
@@ -257,10 +326,21 @@ export function ConversationThreadScreen() {
       {!isLocked ? (
         <View style={styles.composer}>
           <TouchableOpacity
-            style={styles.offerBtn}
+            style={styles.composerIconBtn}
             onPress={() => setShowOfferSheet(!showOfferSheet)}
           >
             <Text style={styles.composerIcon}>💰</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.composerIconBtn}
+            onPress={handleAttachment}
+            disabled={attachmentUploading}
+          >
+            {attachmentUploading ? (
+              <ActivityIndicator size="small" color={colors.blue} />
+            ) : (
+              <Text style={styles.composerIcon}>📎</Text>
+            )}
           </TouchableOpacity>
           <TextInput
             style={[styles.composerInput, { maxHeight: 100 }]}
@@ -368,13 +448,23 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     gap: spacing.sm,
   },
-  offerBtn: {
-    width: 40,
+  composerIconBtn: {
+    width: 36,
     height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   composerIcon: { fontSize: 20 },
+  attachmentImage: {
+    width: 200,
+    height: 150,
+    borderRadius: radii.card,
+    marginBottom: 4,
+  },
+  attachmentPill: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
   composerInput: {
     flex: 1,
     backgroundColor: colors.paper,

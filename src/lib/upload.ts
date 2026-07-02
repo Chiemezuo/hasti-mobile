@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import * as FileSystem from "expo-file-system/legacy";
 
 export interface PresignResult {
   url: string;
@@ -10,6 +11,28 @@ const STORAGE_BASE_URL: string =
   (Constants.expoConfig?.extra?.storageBaseUrl as string | undefined) ??
   "http://localhost:9000/hasti-public";
 
+// The storage origin (scheme + host + port) derived from STORAGE_BASE_URL.
+// Used to rewrite presigned URLs whose host is a Docker-internal name (e.g. "minio")
+// that the device cannot resolve.
+const STORAGE_ORIGIN = (() => {
+  try {
+    const u = new URL(STORAGE_BASE_URL);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return null;
+  }
+})();
+
+function rewritePresignUrl(presignUrl: string): string {
+  if (!STORAGE_ORIGIN) return presignUrl;
+  try {
+    const u = new URL(presignUrl);
+    return presignUrl.replace(`${u.protocol}//${u.host}`, STORAGE_ORIGIN);
+  } catch {
+    return presignUrl;
+  }
+}
+
 export function mediaUrl(key: string): string {
   return `${STORAGE_BASE_URL}/${key}`;
 }
@@ -17,33 +40,38 @@ export function mediaUrl(key: string): string {
 export async function putToStorage(
   presignUrl: string,
   fileUri: string,
-  contentType: string,
-  onProgress?: (pct: number) => void
+  contentType: string
 ): Promise<void> {
-  const response = await fetch(fileUri);
-  const blob = await response.blob();
+  const url = rewritePresignUrl(presignUrl);
 
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", presignUrl);
-    xhr.setRequestHeader("Content-Type", contentType);
+  // Android image-picker returns content:// URIs; FileSystem.uploadAsync requires
+  // a file:// URI (its native layer calls toFile() which crashes on content:// URIs).
+  // Copy to a temp file first, upload from there, then clean up.
+  let uploadUri = fileUri;
+  let tempFile: string | null = null;
+  if (!fileUri.startsWith("file://")) {
+    const ext = contentType.split("/")[1]?.split("+")[0] ?? "bin";
+    const cache = FileSystem.cacheDirectory;
+    if (!cache) throw new Error("No cache directory");
+    tempFile = `${cache}hasti_upload_${Date.now()}.${ext}`;
+    await FileSystem.copyAsync({ from: fileUri, to: tempFile });
+    uploadUri = tempFile;
+  }
 
-    if (onProgress) {
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          onProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
+  try {
+    const result = await FileSystem.uploadAsync(url, uploadUri, {
+      httpMethod: "PUT",
+      headers: { "Content-Type": contentType },
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    });
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`Upload failed: ${result.status} ${result.body}`);
     }
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed: ${xhr.status}`));
-    };
-
-    xhr.onerror = () => reject(new Error("Upload network error"));
-    xhr.send(blob);
-  });
+  } finally {
+    if (tempFile) {
+      FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
+    }
+  }
 }
 
 export function getContentType(uri: string): string {

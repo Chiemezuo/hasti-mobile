@@ -1,25 +1,31 @@
-import React from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { colors } from "@/theme";
-import { Text } from "@/components/ui/Text";
 import { useRoute } from "@react-navigation/native";
+import { API_BASE } from "@/api/client";
+import { getAccessToken } from "@/auth/token-store";
 
 export function AttachmentViewerScreen() {
   const route = useRoute<any>();
   const { objectId, conversationId } = route.params;
+  const [authHeader, setAuthHeader] = useState<Record<string, string>>({});
 
-  // The attachment URL comes from GET /conversations/:id/attachments/:objectId
-  // In real app, use useQuery to fetch the attachment URL
-  const url = `${conversationId}/attachments/${objectId}`;
+  useEffect(() => {
+    getAccessToken().then((token) => {
+      if (token) setAuthHeader({ Authorization: `Bearer ${token}` });
+    });
+  }, []);
+
+  const uri = `${API_BASE}/conversations/${conversationId}/attachments/${objectId}`;
 
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: url }}
+        source={{ uri, headers: authHeader }}
         style={styles.image}
         contentFit="contain"
-        placeholder={{ blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4" }}
+        cachePolicy="none"
       />
     </View>
   );

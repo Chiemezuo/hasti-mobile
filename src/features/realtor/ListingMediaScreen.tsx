@@ -42,17 +42,17 @@ export function ListingMediaScreen() {
 
   async function addPhoto() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       quality: 0.85,
     });
     if (result.canceled || !result.assets[0]) return;
-    const uri = result.assets[0].uri;
-    const contentType = getContentType(uri);
+    const asset = result.assets[0];
+    const contentType = asset.mimeType ?? getContentType(asset.uri);
     setUploading(true);
     setUploadError("");
     try {
       const { url, key } = await presignMedia(id, "IMAGE", contentType);
-      await putToStorage(url, uri, contentType);
+      await putToStorage(url, asset.uri, contentType);
       await confirmMedia(id, key);
       queryClient.invalidateQueries({ queryKey: ["property", id] });
     } catch {
@@ -64,16 +64,16 @@ export function ListingMediaScreen() {
 
   async function addDocument() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       quality: 0.9,
     });
     if (result.canceled || !result.assets[0]) return;
-    const uri = result.assets[0].uri;
-    const contentType = getContentType(uri);
+    const docAsset = result.assets[0];
+    const contentType = docAsset.mimeType ?? getContentType(docAsset.uri);
     setUploading(true);
     try {
       const { url, key } = await presignDocument(id, "C_OF_O", contentType);
-      await putToStorage(url, uri, contentType);
+      await putToStorage(url, docAsset.uri, contentType);
       await confirmDocument(id, key, "C_OF_O");
       queryClient.invalidateQueries({ queryKey: ["property", id] });
     } catch {

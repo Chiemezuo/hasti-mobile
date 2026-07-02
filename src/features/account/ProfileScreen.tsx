@@ -29,18 +29,18 @@ export function ProfileScreen() {
 
   async function pickAvatar() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
     });
     if (result.canceled || !result.assets[0]) return;
-    const uri = result.assets[0].uri;
-    const contentType = getContentType(uri);
-    setAvatarUri(uri);
+    const asset = result.assets[0];
+    const contentType = asset.mimeType ?? getContentType(asset.uri);
+    setAvatarUri(asset.uri);
     try {
       const { url, key } = await presignAvatar(contentType);
-      await putToStorage(url, uri, contentType);
+      await putToStorage(url, asset.uri, contentType);
       setAvatarKey(key);
     } catch {
       setError("Avatar upload failed. Please try again.");

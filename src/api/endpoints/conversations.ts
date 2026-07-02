@@ -94,7 +94,7 @@ export async function getMessages(
 
 export async function sendMessage(
   conversationId: string,
-  input: { body?: string; attachment?: { key: string; type: "IMAGE" | "PDF"; name?: string } }
+  input: { body?: string; attachment?: { key: string; type: "IMAGE" | "PDF"; name: string } }
 ): Promise<Message> {
   return apiFetch<Message>({
     path: `/conversations/${conversationId}/messages`,

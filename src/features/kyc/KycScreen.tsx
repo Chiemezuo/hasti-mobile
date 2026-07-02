@@ -53,13 +53,13 @@ export function KycScreen() {
     const setSlot = slot === "id" ? setIdSlot : setSelfieSlot;
 
     const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85 });
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.85 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.85 });
 
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
-    const contentType = getContentType(asset.uri);
+    const contentType = asset.mimeType ?? getContentType(asset.uri);
 
     setSlot((prev) => ({ ...prev, uri: asset.uri, uploading: true, error: null }));
     try {

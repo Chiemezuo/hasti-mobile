@@ -11,7 +11,7 @@ const BASE_URL: string =
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
   "http://localhost:3100";
 
-const API_BASE = `${BASE_URL}/api/v1`;
+export const API_BASE = `${BASE_URL}/api/v1`;
 
 // Token response shape — hand-typed until @hasti/contracts adds authTokenResponseSchema
 interface TokenResponse {
@@ -78,9 +78,19 @@ function isPublicPath(path: string): boolean {
   return false;
 }
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 type ApiFetchOptions = RequestInit & {
   path: string;
 };
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+}
 
 export async function apiFetch<T>(options: ApiFetchOptions): Promise<T> {
   const { path, ...init } = options;
@@ -96,7 +106,7 @@ export async function apiFetch<T>(options: ApiFetchOptions): Promise<T> {
     if (at) headers.set("Authorization", `Bearer ${at}`);
   }
 
-  let res = await fetch(url, { ...init, headers });
+  let res = await fetchWithTimeout(url, { ...init, headers });
 
   if (res.status === 401 && !isPublicPath(path)) {
     const newAt = await refreshOnce();
@@ -105,7 +115,7 @@ export async function apiFetch<T>(options: ApiFetchOptions): Promise<T> {
       throw new AuthError("Session expired");
     }
     headers.set("Authorization", `Bearer ${newAt}`);
-    res = await fetch(url, { ...init, headers });
+    res = await fetchWithTimeout(url, { ...init, headers });
   }
 
   if (!res.ok) {
