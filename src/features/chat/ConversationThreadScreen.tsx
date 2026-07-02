@@ -20,6 +20,7 @@ import {
   presignAttachment,
   type Message,
   type MessagesResponse,
+  type ConversationsResponse,
 } from "@/api/endpoints/conversations";
 import { getConversation } from "@/api/endpoints/conversations";
 import { getOffers, makeOffer, acceptOffer, counterOffer, rejectOffer, withdrawOffer } from "@/api/endpoints/offers";
@@ -112,8 +113,24 @@ export function ConversationThreadScreen() {
   useEffect(() => {
     markRead(id)
       .then(() => {
-        queryClient.invalidateQueries({ queryKey: ["unread-count"] });
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        // Write directly into the cache so the tab badge and conversation list
+        // row update immediately — don't rely on a refetch, which could race
+        // with the server's eventual consistency on unreadCount.
+        queryClient.setQueriesData<InfiniteData<ConversationsResponse>>(
+          { queryKey: ["conversations"] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                items: page.items.map((item) =>
+                  item.id === id ? { ...item, unreadCount: 0 } : item
+                ),
+              })),
+            };
+          }
+        );
       })
       .catch(() => {});
   }, [id, messages.length]);
