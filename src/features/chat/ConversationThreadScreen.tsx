@@ -24,6 +24,7 @@ import {
 } from "@/api/endpoints/conversations";
 import { getConversation } from "@/api/endpoints/conversations";
 import { getOffers, makeOffer, acceptOffer, counterOffer, rejectOffer, withdrawOffer } from "@/api/endpoints/offers";
+import { openTransaction } from "@/api/endpoints/transactions";
 import { colors, spacing, radii, fonts } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { formatNaira } from "@/lib/money";
@@ -217,6 +218,22 @@ export function ConversationThreadScreen() {
     },
   });
 
+  const lockDealMutation = useMutation({
+    mutationFn: (offerId: string) => openTransaction(offerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      Alert.alert(
+        "Deal created!",
+        "Your escrow deal has been initiated. Go to your Deals tab to view payment instructions and fund it.",
+        [{ text: "OK" }]
+      );
+    },
+    onError: () => {
+      Alert.alert("Error", "Could not initiate the deal. It may already exist — check your Deals tab.");
+    },
+  });
+
   function handleSend() {
     if (!text.trim()) return;
     sendMutation.mutate(text.trim());
@@ -252,10 +269,12 @@ export function ConversationThreadScreen() {
 
   const isLocked = conversation?.status === "LOCKED";
   const activeOffer = offersData?.active ?? null;
+  const agreedOffer = offersData?.agreed ?? null;
   // Derive ownership from makerId rather than the server's `mine` flag, which
   // can be unreliable depending on how the backend computes it per role.
   const activeOfferIsMine =
     activeOffer !== null && currentUserId !== undefined && activeOffer.makerId === currentUserId;
+  const isBuyer = conversation?.role === "buyer";
 
   function renderMessage({ item }: { item: Message }) {
     const isOwn = item.mine;
@@ -371,6 +390,34 @@ export function ConversationThreadScreen() {
             >
               <Text style={styles.offerActionWithdraw}>Withdraw</Text>
             </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Agreed offer — offer accepted, awaiting escrow initiation */}
+      {agreedOffer && !activeOffer && (
+        <View style={styles.agreedBanner}>
+          <View style={styles.offerBannerLeft}>
+            <Text variant="bodySm" style={{ fontWeight: "600" }}>
+              Agreed: {formatNaira(agreedOffer.amount)}
+            </Text>
+            <StatusChip
+              label={OFFER_STATUS_LABELS[agreedOffer.status]}
+              family={OFFER_STATUS_CHIP_FAMILY[agreedOffer.status]}
+            />
+          </View>
+          {isBuyer ? (
+            <TouchableOpacity
+              style={styles.lockDealBtn}
+              onPress={() => lockDealMutation.mutate(agreedOffer.id)}
+              disabled={lockDealMutation.isPending}
+            >
+              <Text style={styles.lockDealText}>
+                {lockDealMutation.isPending ? "Initiating…" : "Lock in deal"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text variant="bodySm" muted>Awaiting buyer</Text>
           )}
         </View>
       )}
@@ -528,6 +575,23 @@ const styles = StyleSheet.create({
   offerActionCounter: { color: colors.blueDeep, fontWeight: "700", fontSize: 13 },
   offerActionReject: { color: colors.error, fontWeight: "700", fontSize: 13 },
   offerActionWithdraw: { color: colors.muted, fontWeight: "600", fontSize: 13 },
+  agreedBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: spacing.base,
+    backgroundColor: "#eaf7ef",
+    borderBottomWidth: 1,
+    borderColor: colors.line,
+    gap: spacing.sm,
+  },
+  lockDealBtn: {
+    backgroundColor: "#22a861",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  lockDealText: { color: colors.paper, fontWeight: "700", fontSize: 13 },
   messageList: { padding: spacing.base, paddingBottom: spacing.xl },
   messageRow: { marginBottom: 8 },
   ownRow: { alignItems: "flex-end" },
