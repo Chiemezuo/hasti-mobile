@@ -111,29 +111,27 @@ export function ConversationThreadScreen() {
   }, [conversation]);
 
   useEffect(() => {
-    markRead(id)
-      .then(() => {
-        // Write directly into the cache so the tab badge and conversation list
-        // row update immediately — don't rely on a refetch, which could race
-        // with the server's eventual consistency on unreadCount.
-        queryClient.setQueriesData<InfiniteData<ConversationsResponse>>(
-          { queryKey: ["conversations"] },
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              pages: old.pages.map((page) => ({
-                ...page,
-                items: page.items.map((item) =>
-                  item.id === id ? { ...item, unreadCount: 0 } : item
-                ),
-              })),
-            };
-          }
-        );
-      })
-      .catch(() => {});
-  }, [id, messages.length]);
+    // Zero out the unread count in the local cache immediately when the
+    // conversation opens — don't wait for markRead to succeed so the badge
+    // clears even if the server call is slow or temporarily fails.
+    queryClient.setQueriesData<InfiniteData<ConversationsResponse>>(
+      { queryKey: ["conversations"] },
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === id ? { ...item, unreadCount: 0 } : item
+            ),
+          })),
+        };
+      }
+    );
+    // Notify the server in the background.
+    markRead(id).catch((err) => console.warn("[markRead]", err));
+  }, [id]);
 
   const sendMutation = useMutation({
     mutationFn: (t: string) => sendMessage(id, { body: t }),
