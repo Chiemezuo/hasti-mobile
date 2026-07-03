@@ -41,6 +41,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   plugins: [
+    [
+      "@rnmapbox/maps",
+      {
+        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN ?? "",
+        RNMAPBOX_MAPS_DOWNLOAD_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN ?? "",
+      },
+    ],
     "expo-secure-store",
     [
       "expo-notifications",
@@ -75,6 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     apiBaseUrl: process.env.API_BASE_URL ?? "http://localhost:3100",
     storageBaseUrl: process.env.STORAGE_BASE_URL ?? "http://localhost:9000/hasti-public",
+    mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
     isProduction: process.env.APP_ENV === "production",
     eas: {
       projectId: process.env.EAS_PROJECT_ID ?? "",

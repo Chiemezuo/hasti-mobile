@@ -124,6 +124,7 @@ export function DiscoverScreen() {
           onPress={() => navigation.navigate("MapView")}
         >
           <Text style={styles.mapIcon}>🗺️</Text>
+          <Text style={styles.mapBtnLabel}>Map</Text>
         </TouchableOpacity>
       </View>
 
@@ -218,14 +219,16 @@ const styles = StyleSheet.create({
   },
   filterIcon: { fontSize: 18 },
   mapBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: colors.blueSoft,
-    borderRadius: 22,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
+    backgroundColor: colors.blueDeep,
+    borderRadius: radii.chip,
+    paddingHorizontal: 12,
+    height: 44,
   },
-  mapIcon: { fontSize: 18 },
+  mapIcon: { fontSize: 16 },
+  mapBtnLabel: { color: colors.paper, fontSize: 13, fontWeight: "600" },
   resultsCount: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,
