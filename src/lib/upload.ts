@@ -11,26 +11,11 @@ const STORAGE_BASE_URL: string =
   (Constants.expoConfig?.extra?.storageBaseUrl as string | undefined) ??
   "http://localhost:9000/hasti-public";
 
-// The storage origin (scheme + host + port) derived from STORAGE_BASE_URL.
-// Used to rewrite presigned URLs whose host is a Docker-internal name (e.g. "minio")
-// that the device cannot resolve.
-const STORAGE_ORIGIN = (() => {
-  try {
-    const u = new URL(STORAGE_BASE_URL);
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return null;
-  }
-})();
-
+// Presigned URLs are returned from the API as absolute, opaque URLs and must be
+// used verbatim — the signature is bound to the URL's host, so rewriting would
+// invalidate it. Pass them straight through.
 function rewritePresignUrl(presignUrl: string): string {
-  if (!STORAGE_ORIGIN) return presignUrl;
-  try {
-    const u = new URL(presignUrl);
-    return presignUrl.replace(`${u.protocol}//${u.host}`, STORAGE_ORIGIN);
-  } catch {
-    return presignUrl;
-  }
+  return presignUrl;
 }
 
 export function mediaUrl(key: string): string {

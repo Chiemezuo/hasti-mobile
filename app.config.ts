@@ -48,6 +48,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         RNMAPBOX_MAPS_DOWNLOAD_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN ?? "",
       },
     ],
+    ["expo-build-properties", {
+      android: { usesCleartextTraffic: true },
+    }],
     "expo-secure-store",
     [
       "expo-notifications",
@@ -85,7 +88,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
     isProduction: process.env.APP_ENV === "production",
     eas: {
-      projectId: process.env.EAS_PROJECT_ID ?? "",
+      projectId: process.env.EAS_PROJECT_ID ?? "2671a17a-7f15-4971-ae8b-703b48137412",
     },
   },
   updates: {
