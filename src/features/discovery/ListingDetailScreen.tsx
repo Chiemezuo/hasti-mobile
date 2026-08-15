@@ -189,7 +189,7 @@ export function ListingDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Hero gallery — drawer-expands to fill the screen on swipe-down / tap */}
       <Animated.View style={[styles.galleryContainer, { height: galleryHeight }]} {...galleryPanResponder.panHandlers}>
@@ -252,10 +252,12 @@ export function ListingDetailScreen() {
             <Text style={styles.favoriteIcon}>{favSet.has(id) ? "♥" : "♡"}</Text>
           </TouchableOpacity>
         )}
-        {/* Image counter */}
+        {/* Image carousel dots */}
         {images.length > 1 && (
-          <View style={styles.imageCounter}>
-            <Text style={styles.counterText}>{activeImage + 1}/{images.length}</Text>
+          <View style={styles.dotsRow}>
+            {images.map((img, i) => (
+              <View key={img.id} style={[styles.dot, i === activeImage && styles.dotActive]} />
+            ))}
           </View>
         )}
         {/* Verified badge */}
@@ -436,16 +438,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   favoriteIcon: { fontSize: 18, color: colors.error },
-  imageCounter: {
+  dotsRow: {
     position: "absolute",
     bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(8,24,45,0.6)",
-    borderRadius: radii.chip,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
   },
-  counterText: { color: colors.paper, fontSize: 12 },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.5)",
+  },
+  dotActive: {
+    width: 16,
+    backgroundColor: colors.paper,
+  },
   verifiedBadge: { position: "absolute", bottom: 16, left: 16 },
   body: { padding: spacing.base },
   priceRow: {

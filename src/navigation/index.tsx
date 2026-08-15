@@ -34,7 +34,7 @@ const linking: LinkingOptions<any> = {
       // ── Realtor tabs ─────────────────────────────────────────
       LeadsTab: {
         screens: {
-          ConversationThread: "chat/:id",
+          ConversationThread: "leads/chat/:id",
         },
       },
       // ── Auth screens ─────────────────────────────────────────

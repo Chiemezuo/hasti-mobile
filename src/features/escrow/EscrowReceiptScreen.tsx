@@ -134,7 +134,7 @@ export function EscrowReceiptScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.blueInk} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Dark header panel */}
         <View style={[styles.darkHeader, { paddingTop: headerHeight + spacing.base }]}>

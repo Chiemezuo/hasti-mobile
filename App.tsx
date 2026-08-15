@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, View } from "react-native";
+import { StatusBar, StyleSheet, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "@expo-google-fonts/fraunces/useFonts";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@expo-google-fonts/hanken-grotesk";
 import { queryClient } from "./src/api/queryClient";
 import { RootNavigator } from "./src/navigation";
+import { colors } from "./src/theme";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,6 +45,11 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          {/* App-wide default: dark icons on the light background most screens use.
+              Screens with a dark hero (Welcome, ListingDetail, EscrowReceipt) mount
+              their own <StatusBar> to override this while focused, and it reverts
+              back to this default when they unmount. */}
+          <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
           <View style={styles.root} onLayout={onLayoutRootView}>
             <RootNavigator />
           </View>
