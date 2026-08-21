@@ -8,6 +8,7 @@ export const colors = {
   blueDeep: "#0d2c50",
   blueInk: "#081c36",
   blueSoft: "#e7eef6",
+  brandBlue: "#024487",
   gold: "#a98439",
   goldBright: "#c8a154",
   goldSoft: "#f4ecda",

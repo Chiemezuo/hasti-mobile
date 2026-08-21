@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     lineHeight: lineHeights.label,
     textTransform: "uppercase",
     letterSpacing: 1.32,
-    color: colors.gold,
+    color: colors.brandBlue,
   },
   button: {
     fontFamily: fonts.hankenSemibold,
