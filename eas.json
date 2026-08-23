@@ -18,8 +18,8 @@
       },
       "env": {
         "APP_ENV": "preview",
-        "API_BASE_URL": "http://45.135.36.45",
-        "STORAGE_BASE_URL": "http://45.135.36.45/media"
+        "API_BASE_URL": "http://45.135.36.47",
+        "STORAGE_BASE_URL": "http://45.135.36.47/media"
       }
     },
     "production": {
