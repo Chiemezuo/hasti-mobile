@@ -4,7 +4,7 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
-  ImageBackground,
+  Image,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParams } from "@/navigation/AuthStack";
@@ -21,6 +21,13 @@ export function WelcomeScreen({ navigation }: Props) {
       <StatusBar barStyle="light-content" backgroundColor={colors.blueInk} />
       {/* Dark hero panel */}
       <View style={styles.hero}>
+        <SafeAreaView style={styles.logoRow}>
+          <Image
+            source={require("../../../assets/logo-mark-white.png")}
+            style={styles.logoMark}
+            resizeMode="contain"
+          />
+        </SafeAreaView>
         <SafeAreaView>
           <View style={styles.heroContent}>
             <View style={styles.eyebrowRow}>
@@ -77,8 +84,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.blueInk,
     paddingHorizontal: spacing.base,
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     paddingBottom: spacing.xl,
+  },
+  logoRow: {
+    paddingTop: spacing.lg,
+  },
+  logoMark: {
+    width: 40,
+    height: 36,
   },
   heroContent: {
     gap: spacing.base,

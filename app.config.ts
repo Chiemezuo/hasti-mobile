@@ -14,6 +14,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: "#081c36",
   },
   assetBundlePatterns: ["**/*"],
+  web: {
+    favicon: "./assets/favicon.png",
+  },
   ios: {
     supportsTablet: false,
     bundleIdentifier: "com.hasti.mobile",
@@ -30,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: "com.hasti.mobile",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#081c36",
+      backgroundColor: "#ffffff",
     },
     permissions: [
       "android.permission.CAMERA",
@@ -56,7 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-notifications",
       {
         icon: "./assets/notification-icon.png",
-        color: "#16497e",
+        color: "#024487",
       },
     ],
     [
