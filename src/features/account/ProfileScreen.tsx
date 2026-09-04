@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, P
 import { useForm, Controller } from "react-hook-form";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { Input } from "@/components/ui/Input";
@@ -91,7 +92,7 @@ export function ProfileScreen() {
                 </View>
               )}
               <View style={styles.avatarEditBadge}>
-                <Text style={styles.editIcon}>✏️</Text>
+                <Ionicons name="pencil-outline" size={14} color={colors.paper} />
               </View>
             </View>
           </TouchableOpacity>
@@ -205,7 +206,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.paper,
   },
-  editIcon: { fontSize: 14 },
   errorBanner: {
     backgroundColor: `${colors.error}1a`,
     borderRadius: 12,

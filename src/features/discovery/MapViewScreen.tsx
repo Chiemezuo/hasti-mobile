@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import MapboxGL from "@rnmapbox/maps";
 import Constants from "expo-constants";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getPropertiesMap, type MapPoint } from "@/api/endpoints/properties";
 import { colors, spacing, radii, fonts } from "@/theme";
@@ -213,11 +214,11 @@ export function MapViewScreen() {
               </Text>
             </View>
             <View style={styles.cardArrow}>
-              <Text style={{ color: colors.blue, fontSize: 18 }}>›</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.blue} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.dismissBtn} onPress={() => setSelectedPin(null)}>
-            <Text style={styles.dismissX}>✕</Text>
+            <Ionicons name="close" size={14} color={colors.muted} />
           </TouchableOpacity>
         </View>
       )}
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(246,248,250,0.6)",
@@ -285,5 +286,4 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  dismissX: { color: colors.muted, fontSize: 14 },
 });

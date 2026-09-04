@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView, Switch, RefreshControl } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getNotificationPreferences,
@@ -49,7 +50,7 @@ export function NotificationPrefsScreen() {
 
       {/* Push note */}
       <View style={styles.pushNote}>
-        <Text style={{ fontSize: 16 }}>📲</Text>
+        <Ionicons name="notifications-outline" size={16} color={colors.blue} />
         <Text variant="bodySm" style={{ flex: 1, color: colors.blue }}>
           Push notifications are coming soon — notifications currently arrive in-app and by email.
         </Text>
@@ -62,9 +63,12 @@ export function NotificationPrefsScreen() {
               {group.label}
             </Text>
             {group.locked && (
-              <Text variant="bodySm" muted>
-                🔒 Always on — critical updates
-              </Text>
+              <View style={styles.lockedRow}>
+                <Ionicons name="lock-closed-outline" size={12} color={colors.muted} />
+                <Text variant="bodySm" muted>
+                  Always on — critical updates
+                </Text>
+              </View>
             )}
           </View>
           <View style={styles.channelRow}>
@@ -122,6 +126,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     gap: 4,
   },
+  lockedRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   channelRow: {
     flexDirection: "row",
     alignItems: "center",

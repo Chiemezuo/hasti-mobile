@@ -11,6 +11,7 @@ import {
   BackHandler,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPropertyById, toggleFavorite } from "@/api/endpoints/properties";
@@ -238,7 +239,7 @@ export function ListingDetailScreen() {
             else navigation.goBack();
           }}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.ink} />
         </TouchableOpacity>
         {/* Favorite button */}
         {user && (
@@ -249,7 +250,11 @@ export function ListingDetailScreen() {
               favoriteMutation.mutate({ add: !isFav });
             }}
           >
-            <Text style={styles.favoriteIcon}>{favSet.has(id) ? "♥" : "♡"}</Text>
+            <Ionicons
+              name={favSet.has(id) ? "heart" : "heart-outline"}
+              size={18}
+              color={colors.error}
+            />
           </TouchableOpacity>
         )}
         {/* Image carousel dots */}
@@ -269,7 +274,7 @@ export function ListingDetailScreen() {
         {/* Collapse handle — appears only when fully expanded */}
         <Animated.View style={[styles.collapseHandle, { opacity: collapseIndicatorOpacity }]}>
           <TouchableOpacity onPress={collapseGallery} style={styles.collapseBtn}>
-            <Text style={styles.collapseBtnIcon}>↓</Text>
+            <Ionicons name="chevron-down" size={18} color={colors.ink} />
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -297,27 +302,30 @@ export function ListingDetailScreen() {
           <Text variant="h2" style={styles.title}>
             {property.title}
           </Text>
-          <Text variant="body" muted style={styles.address}>
-            📍 {property.address}, {property.city}, {property.state}
-          </Text>
+          <View style={styles.addressRow}>
+            <Ionicons name="location-outline" size={14} color={colors.muted} />
+            <Text variant="body" muted style={styles.address}>
+              {property.address}, {property.city}, {property.state}
+            </Text>
+          </View>
 
           {/* Specs */}
           <View style={styles.specsRow}>
             {property.bedrooms != null && (
               <View style={styles.specItem}>
-                <Text style={styles.specIcon}>🛏</Text>
+                <Ionicons name="bed-outline" size={16} color={colors.ink} />
                 <Text variant="bodySm">{property.bedrooms} beds</Text>
               </View>
             )}
             {property.bathrooms != null && (
               <View style={styles.specItem}>
-                <Text style={styles.specIcon}>🚿</Text>
+                <Ionicons name="water-outline" size={16} color={colors.ink} />
                 <Text variant="bodySm">{property.bathrooms} baths</Text>
               </View>
             )}
             {property.sizeSqm != null && (
               <View style={styles.specItem}>
-                <Text style={styles.specIcon}>📐</Text>
+                <Ionicons name="resize-outline" size={16} color={colors.ink} />
                 <Text variant="bodySm">{property.sizeSqm} m²</Text>
               </View>
             )}
@@ -353,7 +361,7 @@ export function ListingDetailScreen() {
             <Text variant="label">Listed by</Text>
             <View style={styles.realtorRow}>
               <View style={styles.realtorAvatar}>
-                <Text style={styles.realtorInitial}>🏠</Text>
+                <Ionicons name="person-outline" size={20} color={colors.blue} />
               </View>
               <Text variant="body" style={{ fontWeight: "600" }}>
                 Verified realtor
@@ -415,7 +423,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  collapseBtnIcon: { fontSize: 18, color: colors.ink },
   backBtn: {
     position: "absolute",
     left: spacing.base,
@@ -426,7 +433,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backIcon: { fontSize: 18, color: colors.ink },
   favoriteBtn: {
     position: "absolute",
     right: spacing.base,
@@ -437,7 +443,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  favoriteIcon: { fontSize: 18, color: colors.error },
   dotsRow: {
     position: "absolute",
     bottom: 16,
@@ -469,7 +474,8 @@ const styles = StyleSheet.create({
   priceBlock: { flex: 1 },
   period: { marginTop: 2 },
   title: { marginBottom: spacing.xs },
-  address: { marginBottom: spacing.base },
+  addressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: spacing.base },
+  address: {},
   specsRow: {
     flexDirection: "row",
     gap: spacing.xl,
@@ -480,7 +486,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.base,
   },
   specItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  specIcon: { fontSize: 16 },
   section: { marginTop: spacing.xl },
   description: { marginTop: spacing.sm, lineHeight: 24 },
   amenitiesGrid: {
@@ -509,7 +514,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  realtorInitial: { fontSize: 20, color: colors.blue, fontWeight: "700" },
   stickyFooter: {
     position: "absolute",
     bottom: 0,

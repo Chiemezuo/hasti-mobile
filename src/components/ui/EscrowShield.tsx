@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, spacing } from "@/theme";
 import { Text } from "./Text";
 import { Card } from "./Card";
@@ -8,7 +9,7 @@ export function EscrowShield() {
   return (
     <Card style={styles.card}>
       <View style={styles.iconWell}>
-        <Text style={styles.icon}>🛡️</Text>
+        <Ionicons name="shield-checkmark-outline" size={22} color={colors.gold} />
       </View>
       <View style={styles.content}>
         <Text variant="bodySm" style={styles.title}>
@@ -36,9 +37,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldSoft,
     alignItems: "center",
     justifyContent: "center",
-  },
-  icon: {
-    fontSize: 22,
   },
   content: {
     flex: 1,

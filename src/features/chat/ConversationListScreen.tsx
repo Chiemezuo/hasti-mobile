@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/Text";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 
 export function ConversationListScreen() {
   const navigation = useNavigation<any>();
@@ -71,7 +72,7 @@ export function ConversationListScreen() {
               </View>
             )}
             {item.status === "LOCKED" && (
-              <Text style={styles.lockIcon}>🔒</Text>
+              <Ionicons name="lock-closed-outline" size={16} color={colors.muted} />
             )}
           </TouchableOpacity>
         )}
@@ -147,7 +148,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: { color: colors.paper, fontSize: 12, fontWeight: "700" },
-  lockIcon: { fontSize: 16 },
   skeletons: { gap: 8 },
   empty: { padding: spacing.xl, alignItems: "center" },
 });

@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { colors, fonts } from "@/theme";
 import { Platform, View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 // Tab feature screens
 import { DiscoverScreen } from "@/features/discovery/DiscoverScreen";
@@ -25,7 +26,6 @@ import { WalletScreen } from "@/features/wallet/WalletScreen";
 import { KycScreen } from "@/features/kyc/KycScreen";
 import { NotificationPrefsScreen } from "@/features/notifications/NotificationPrefsScreen";
 import { NotificationsScreen } from "@/features/notifications/NotificationsScreen";
-import { Text } from "@/components/ui/Text";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getConversations } from "@/api/endpoints/conversations";
 
@@ -101,17 +101,26 @@ function AccountStackNav() {
   );
 }
 
+const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Discover: "compass-outline",
+  Saved: "heart-outline",
+  Chats: "chatbubble-ellipses-outline",
+  Deals: "lock-closed-outline",
+  Account: "person-outline",
+};
+const TAB_ICONS_FOCUSED: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Discover: "compass",
+  Saved: "heart",
+  Chats: "chatbubble-ellipses",
+  Deals: "lock-closed",
+  Account: "person",
+};
+
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Discover: "🔍",
-    Saved: "❤️",
-    Chats: "💬",
-    Deals: "🔒",
-    Account: "👤",
-  };
+  const icon = (focused ? TAB_ICONS_FOCUSED[name] : TAB_ICONS[name]) ?? "ellipse-outline";
   return (
     <View style={{ alignItems: "center" }}>
-      <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{icons[name] ?? "●"}</Text>
+      <Ionicons name={icon} size={22} color={focused ? colors.ink : colors.muted} />
       {focused && <View style={styles.indicator} />}
     </View>
   );

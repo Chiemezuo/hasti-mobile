@@ -6,6 +6,7 @@ import {
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -86,9 +87,11 @@ export function ListingCard({
               hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
               accessibilityLabel={isFavorited ? "Remove from saved" : "Save to favorites"}
             >
-              <Text style={[styles.heart, isFavorited && styles.heartFilled]}>
-                {isFavorited ? "♥" : "♡"}
-              </Text>
+              <Ionicons
+                name={isFavorited ? "heart" : "heart-outline"}
+                size={18}
+                color={isFavorited ? colors.error : colors.muted}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -105,25 +108,37 @@ export function ListingCard({
         <Text variant="body" style={styles.title} numberOfLines={2}>
           {property.title}
         </Text>
-        <Text variant="bodySm" muted numberOfLines={1} style={styles.location}>
-          📍 {property.city}, {property.state}
-        </Text>
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={13} color={colors.muted} />
+          <Text variant="bodySm" muted numberOfLines={1} style={styles.location}>
+            {property.city}, {property.state}
+          </Text>
+        </View>
         <View style={styles.divider} />
         <View style={styles.specs}>
           {property.bedrooms != null && (
-            <Text variant="bodySm" muted>
-              🛏 {property.bedrooms} bed{property.bedrooms !== 1 ? "s" : ""}
-            </Text>
+            <View style={styles.specItem}>
+              <Ionicons name="bed-outline" size={14} color={colors.muted} />
+              <Text variant="bodySm" muted>
+                {property.bedrooms} bed{property.bedrooms !== 1 ? "s" : ""}
+              </Text>
+            </View>
           )}
           {property.bathrooms != null && (
-            <Text variant="bodySm" muted>
-              🚿 {property.bathrooms} bath{property.bathrooms !== 1 ? "s" : ""}
-            </Text>
+            <View style={styles.specItem}>
+              <Ionicons name="water-outline" size={14} color={colors.muted} />
+              <Text variant="bodySm" muted>
+                {property.bathrooms} bath{property.bathrooms !== 1 ? "s" : ""}
+              </Text>
+            </View>
           )}
           {property.sizeSqm != null && (
-            <Text variant="bodySm" muted>
-              📐 {property.sizeSqm} m²
-            </Text>
+            <View style={styles.specItem}>
+              <Ionicons name="resize-outline" size={14} color={colors.muted} />
+              <Text variant="bodySm" muted>
+                {property.sizeSqm} m²
+              </Text>
+            </View>
           )}
         </View>
       </View>
@@ -190,13 +205,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 18,
   },
-  heart: {
-    fontSize: 18,
-    color: colors.muted,
-  },
-  heartFilled: {
-    color: colors.error,
-  },
   body: {
     padding: 16,
   },
@@ -207,9 +215,13 @@ const styles = StyleSheet.create({
   period: {
     display: "flex",
   },
-  location: {
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     marginTop: 4,
   },
+  location: {},
   divider: {
     height: 1,
     backgroundColor: colors.line,
@@ -218,5 +230,10 @@ const styles = StyleSheet.create({
   specs: {
     flexDirection: "row",
     gap: 16,
+  },
+  specItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
 });

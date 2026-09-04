@@ -7,6 +7,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getMyListings } from "@/api/endpoints/realtor";
 import { getPropertyById } from "@/api/endpoints/properties";
@@ -33,7 +34,7 @@ function ListingThumbnail({ id }: { id: string }) {
   );
 
   if (!firstImage) {
-    return <Text style={{ fontSize: 28 }}>🏠</Text>;
+    return <Ionicons name="home-outline" size={28} color={colors.blue} />;
   }
 
   return (
@@ -83,7 +84,7 @@ export function MyListingsScreen() {
                 style={styles.mediaBtn}
                 onPress={() => navigation.navigate("ListingMedia", { id: item.id })}
               >
-                <Text style={{ fontSize: 18 }}>🖼️</Text>
+                <Ionicons name="image-outline" size={18} color={colors.ink} />
               </TouchableOpacity>
             </TouchableOpacity>
           );
@@ -118,7 +119,7 @@ export function MyListingsScreen() {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={{ fontSize: 48 }}>🏘️</Text>
+              <Ionicons name="business-outline" size={48} color={colors.muted} />
               <Text variant="h3" center style={{ marginTop: 16 }}>No listings yet</Text>
               <Text variant="body" muted center style={{ marginTop: 8 }}>
                 {kycApproved

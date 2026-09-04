@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getTransactions } from "@/api/endpoints/transactions";
 import { colors, spacing, radii } from "@/theme";
@@ -41,7 +42,7 @@ export function TransactionListScreen() {
           >
             <View style={styles.rowLeft}>
               <View style={styles.escrowIcon}>
-                <Text style={{ fontSize: 24 }}>🔒</Text>
+                <Ionicons name="lock-closed-outline" size={22} color={colors.blue} />
               </View>
             </View>
             <View style={styles.rowContent}>
@@ -67,7 +68,7 @@ export function TransactionListScreen() {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>🔒</Text>
+              <Ionicons name="lock-closed-outline" size={48} color={colors.muted} />
               <Text variant="h3" center style={{ marginTop: 16 }}>No deals yet</Text>
               <Text variant="body" muted center style={{ marginTop: 8 }}>
                 When you accept an offer on a property, your deal will appear here
@@ -110,5 +111,4 @@ const styles = StyleSheet.create({
   rowContent: { flex: 1 },
   propertyTitle: { fontWeight: "600", marginBottom: 2 },
   empty: { padding: spacing.xl, alignItems: "center" },
-  emptyIcon: { fontSize: 48 },
 });

@@ -9,6 +9,7 @@ import {
   ListRenderItem,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProperties, toggleFavorite, type ListingCard as ListingCardData } from "@/api/endpoints/properties";
 import { getFavoriteIds } from "@/api/endpoints/favorites";
@@ -96,7 +97,7 @@ export function DiscoverScreen() {
       {/* Search bar */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search-outline" size={16} color={colors.muted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by city, title, or address"
@@ -108,7 +109,7 @@ export function DiscoverScreen() {
           />
           {searchText ? (
             <TouchableOpacity onPress={() => { setSearchText(""); setSubmittedSearch(""); }}>
-              <Text style={styles.clearBtn}>✕</Text>
+              <Ionicons name="close" size={16} color={colors.muted} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -116,14 +117,14 @@ export function DiscoverScreen() {
           style={[styles.filterBtn, filtersActive && styles.filterBtnActive]}
           onPress={() => navigation.navigate("Filters")}
         >
-          <Text style={styles.filterIcon}>⚙️</Text>
+          <Ionicons name="options-outline" size={20} color={filtersActive ? colors.blueDeep : colors.ink} />
           {filtersActive && <View style={styles.filterDot} />}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.mapBtn}
           onPress={() => navigation.navigate("MapView")}
         >
-          <Text style={styles.mapIcon}>🗺️</Text>
+          <Ionicons name="map-outline" size={16} color={colors.paper} />
           <Text style={styles.mapBtnLabel}>Map</Text>
         </TouchableOpacity>
       </View>
@@ -191,14 +192,12 @@ const styles = StyleSheet.create({
     height: 44,
     gap: spacing.sm,
   },
-  searchIcon: { fontSize: 14 },
   searchInput: {
     flex: 1,
     fontFamily: fonts.hankenRegular,
     fontSize: 15,
     color: colors.ink,
   },
-  clearBtn: { fontSize: 12, color: colors.muted },
   filterBtn: {
     width: 44,
     height: 44,
@@ -217,7 +216,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.blueDeep,
   },
-  filterIcon: { fontSize: 18 },
   mapBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -227,7 +225,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 44,
   },
-  mapIcon: { fontSize: 16 },
   mapBtnLabel: { color: colors.paper, fontSize: 13, fontWeight: "600" },
   resultsCount: {
     paddingHorizontal: spacing.base,

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTransaction,
@@ -185,7 +186,7 @@ export function EscrowReceiptScreen() {
 
         {/* Gold seal */}
         <View style={styles.seal}>
-          <Text style={styles.sealText}>🛡️</Text>
+          <Ionicons name="shield-checkmark-outline" size={28} color={colors.gold} />
         </View>
 
         {/* Body — stepped checklist */}
@@ -209,14 +210,16 @@ export function EscrowReceiptScreen() {
                     showBranchAtStep && styles.stepBranch,
                   ]}
                 >
-                  {stepState === "done" && <Text style={styles.checkMark}>✓</Text>}
+                  {stepState === "done" && <Ionicons name="checkmark" size={16} color={colors.blue} />}
                   {stepState === "current" && !showBranchAtStep && (
                     <View style={styles.goldDot} />
                   )}
                   {showBranchAtStep && (
-                    <Text style={styles.branchIcon}>
-                      {isDisputed ? "⚠️" : "↩️"}
-                    </Text>
+                    <Ionicons
+                      name={isDisputed ? "alert-circle-outline" : "arrow-undo-outline"}
+                      size={14}
+                      color={colors.ink}
+                    />
                   )}
                 </View>
                 {i < STEPS.length - 1 && (
@@ -389,7 +392,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 10,
   },
-  sealText: { fontSize: 28 },
   body: { padding: spacing.base },
   step: {
     flexDirection: "row",
@@ -433,14 +435,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.line,
   },
   stepLineDone: { backgroundColor: colors.blue },
-  checkMark: { color: colors.blue, fontSize: 16, fontWeight: "700" },
   goldDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.gold,
   },
-  branchIcon: { fontSize: 14 },
   stepContent: { flex: 1, paddingTop: 6 },
   footnote: {
     marginTop: spacing.base,

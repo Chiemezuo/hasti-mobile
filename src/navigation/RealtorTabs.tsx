@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { colors, fonts } from "@/theme";
 import { Platform, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { MyListingsScreen } from "@/features/realtor/MyListingsScreen";
 import { CreateListingScreen } from "@/features/realtor/CreateListingScreen";
@@ -20,7 +21,6 @@ import { ChangePasswordScreen } from "@/features/account/ChangePasswordScreen";
 import { SessionsScreen } from "@/features/account/SessionsScreen";
 import { KycScreen } from "@/features/kyc/KycScreen";
 import { NotificationPrefsScreen } from "@/features/notifications/NotificationPrefsScreen";
-import { Text } from "@/components/ui/Text";
 
 const Tab = createBottomTabNavigator();
 const ListingsStack = createNativeStackNavigator();
@@ -79,16 +79,24 @@ function AccountStackNav() {
   );
 }
 
+const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Listings: "business-outline",
+  Leads: "people-outline",
+  Deals: "lock-closed-outline",
+  Account: "person-outline",
+};
+const TAB_ICONS_FOCUSED: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Listings: "business",
+  Leads: "people",
+  Deals: "lock-closed",
+  Account: "person",
+};
+
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Listings: "🏘️",
-    Leads: "👥",
-    Deals: "🔒",
-    Account: "👤",
-  };
+  const icon = (focused ? TAB_ICONS_FOCUSED[name] : TAB_ICONS[name]) ?? "ellipse-outline";
   return (
     <View style={{ alignItems: "center" }}>
-      <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{icons[name] ?? "●"}</Text>
+      <Ionicons name={icon} size={22} color={focused ? colors.ink : colors.muted} />
       {focused && <View style={styles.indicator} />}
     </View>
   );

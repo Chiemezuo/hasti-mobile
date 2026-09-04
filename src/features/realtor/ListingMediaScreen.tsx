@@ -5,9 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPropertyById } from "@/api/endpoints/properties";
 import {
@@ -131,7 +133,7 @@ export function ListingMediaScreen() {
                     ])
                   }
                 >
-                  <Text style={styles.deleteBtnText}>✕</Text>
+                  <Ionicons name="close" size={14} color={colors.paper} />
                 </TouchableOpacity>
               )}
             </View>
@@ -143,7 +145,11 @@ export function ListingMediaScreen() {
             onPress={addPhoto}
             disabled={uploading}
           >
-            <Text style={styles.addIcon}>{uploading ? "⏳" : "+"}</Text>
+            {uploading ? (
+              <ActivityIndicator size="small" color={colors.muted} />
+            ) : (
+              <Ionicons name="add" size={28} color={colors.muted} />
+            )}
             <Text variant="bodySm" muted>Add photo</Text>
           </TouchableOpacity>
         </View>
@@ -156,7 +162,7 @@ export function ListingMediaScreen() {
           Upload C of O, survey, deed, or other title documents (max 10MB each)
         </Text>
         <TouchableOpacity style={styles.docUploadBtn} onPress={addDocument} disabled={uploading}>
-          <Text style={{ fontSize: 28 }}>📄</Text>
+          <Ionicons name="document-outline" size={28} color={colors.blue} />
           <View>
             <Text variant="body">Upload document</Text>
             <Text variant="bodySm" muted>PDF or image, max 10MB</Text>
@@ -188,14 +194,14 @@ const styles = StyleSheet.create({
   },
   mediaImage: { width: 104, height: 104 },
   processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(8,24,45,0.5)",
     alignItems: "center",
     justifyContent: "center",
   },
   processingText: { color: colors.paper, fontSize: 11 },
   failedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(179,70,60,0.7)",
     alignItems: "center",
     justifyContent: "center",
@@ -225,7 +231,6 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: colors.paper,
   },
-  addIcon: { fontSize: 28, color: colors.muted },
   docUploadBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getNotifications, markNotificationsRead } from "@/api/endpoints/notifications";
 import { colors, spacing, radii } from "@/theme";
@@ -7,20 +8,20 @@ import { Text } from "@/components/ui/Text";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useNavigation } from "@react-navigation/native";
 
-const NOTIFICATION_ICONS: Record<string, string> = {
-  "message.new": "💬",
-  "offer.made": "💰",
-  "offer.accepted": "💰",
-  "offer.countered": "💰",
-  "offer.rejected": "💰",
-  "offer.withdrawn": "💰",
-  "transaction.funded": "🔒",
-  "transaction.completed": "🔒",
-  "transaction.disputed": "🔒",
-  "kyc.approved": "🪪",
-  "kyc.rejected": "🪪",
-  "listing.verified": "🏠",
-  "savedSearch.match": "🔍",
+const NOTIFICATION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  "message.new": "chatbubble-outline",
+  "offer.made": "cash-outline",
+  "offer.accepted": "cash-outline",
+  "offer.countered": "cash-outline",
+  "offer.rejected": "cash-outline",
+  "offer.withdrawn": "cash-outline",
+  "transaction.funded": "lock-closed-outline",
+  "transaction.completed": "lock-closed-outline",
+  "transaction.disputed": "lock-closed-outline",
+  "kyc.approved": "id-card-outline",
+  "kyc.rejected": "id-card-outline",
+  "listing.verified": "home-outline",
+  "savedSearch.match": "search-outline",
 };
 
 export function NotificationsScreen() {
@@ -69,7 +70,7 @@ export function NotificationsScreen() {
             }}
           >
             <View style={styles.iconWell}>
-              <Text style={styles.icon}>{NOTIFICATION_ICONS[item.event] ?? "🔔"}</Text>
+              <Ionicons name={NOTIFICATION_ICONS[item.event] ?? "notifications-outline"} size={20} color={colors.blue} />
             </View>
             <View style={styles.content}>
               <Text variant="body" style={{ fontWeight: !item.readAt ? "600" : "400" }}>
@@ -93,7 +94,7 @@ export function NotificationsScreen() {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={{ fontSize: 40 }}>🔔</Text>
+              <Ionicons name="notifications-outline" size={40} color={colors.muted} />
               <Text variant="h3" center style={{ marginTop: 16 }}>No notifications</Text>
               <Text variant="body" muted center style={{ marginTop: 8 }}>
                 You'll see updates about your messages, offers, and deals here
@@ -133,7 +134,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  icon: { fontSize: 22 },
   content: { flex: 1 },
   unreadDot: {
     width: 8,

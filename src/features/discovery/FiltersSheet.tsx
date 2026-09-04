@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii, fonts } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
@@ -207,7 +208,7 @@ export function FiltersSheet() {
             {suggestLoading && <ActivityIndicator size="small" color={colors.blue} style={{ marginRight: 8 }} />}
             {locationText ? (
               <TouchableOpacity onPress={clearLocation}>
-                <Text style={styles.clearX}>✕</Text>
+                <Ionicons name="close" size={14} color={colors.muted} style={styles.clearX} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -220,7 +221,10 @@ export function FiltersSheet() {
                   style={[styles.suggestRow, i < suggestions.length - 1 && styles.suggestDivider]}
                   onPress={() => pickSuggestion(s)}
                 >
-                  <Text variant="body">📍 {s.label}</Text>
+                  <View style={styles.suggestRowContent}>
+                    <Ionicons name="location-outline" size={14} color={colors.muted} />
+                    <Text variant="body">{s.label}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -297,6 +301,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   suggestRow: { paddingVertical: 12, paddingHorizontal: spacing.base },
+  suggestRowContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   suggestDivider: { borderBottomWidth: 1, borderColor: colors.line },
   toggleRow: {
     flexDirection: "row", alignItems: "center",

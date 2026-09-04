@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
@@ -98,7 +99,7 @@ export function KycScreen() {
   if (isApproved) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.successIcon}>✅</Text>
+        <Ionicons name="checkmark-circle" size={56} color={colors.blue} />
         <Text variant="h2" center style={{ marginTop: 16 }}>Identity verified</Text>
         <Text variant="body" muted center style={{ marginTop: 8 }}>
           Your identity has been verified. You can now access all HASTI features.
@@ -110,7 +111,7 @@ export function KycScreen() {
   if (submitted) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.successIcon}>⏳</Text>
+        <Ionicons name="hourglass-outline" size={56} color={colors.gold} />
         <Text variant="h2" center style={{ marginTop: 16 }}>Under review</Text>
         <Text variant="body" muted center style={{ marginTop: 8 }}>
           Your documents have been submitted. You'll be notified when the review is complete.
@@ -210,7 +211,7 @@ function UploadSlotUI({ label, hint, slot, onPickFromLibrary, onPickFromCamera }
           )}
           {slot.key && (
             <View style={styles.doneOverlay}>
-              <Text style={styles.doneCheck}>✓</Text>
+              <Ionicons name="checkmark" size={16} color={colors.paper} />
             </View>
           )}
           {slot.error && (
@@ -222,11 +223,11 @@ function UploadSlotUI({ label, hint, slot, onPickFromLibrary, onPickFromCamera }
       ) : (
         <View style={styles.uploadButtons}>
           <TouchableOpacity style={styles.uploadBtn} onPress={onPickFromCamera}>
-            <Text style={styles.uploadBtnIcon}>📷</Text>
+            <Ionicons name="camera-outline" size={26} color={colors.blue} />
             <Text variant="bodySm">Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.uploadBtn} onPress={onPickFromLibrary}>
-            <Text style={styles.uploadBtnIcon}>🖼️</Text>
+            <Ionicons name="image-outline" size={26} color={colors.blue} />
             <Text variant="bodySm">Library</Text>
           </TouchableOpacity>
         </View>
@@ -239,7 +240,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.base },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, backgroundColor: colors.bg },
-  successIcon: { fontSize: 56 },
   intro: { marginBottom: spacing.xl },
   errorBanner: {
     backgroundColor: `${colors.error}1a`,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   previewContainer: { height: 200, borderRadius: radii.card, overflow: "hidden", position: "relative" },
   preview: { width: "100%", height: "100%" },
   uploadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
@@ -277,9 +277,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  doneCheck: { color: colors.paper, fontWeight: "700", fontSize: 16 },
   errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(179,70,60,0.7)",
     alignItems: "center",
     justifyContent: "center",
@@ -298,6 +297,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  uploadBtnIcon: { fontSize: 28 },
   legalNote: { marginTop: spacing.base },
 });

@@ -1,12 +1,13 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, radii } from "@/theme";
 import { Text } from "./Text";
 
 export function VerifiedBadge() {
   return (
     <View style={styles.badge}>
-      <Text style={styles.check}>✓</Text>
+      <Ionicons name="checkmark-circle" size={12} color={colors.goldBright} />
       <Text variant="bodySm" style={styles.text}>
         Verified
       </Text>
@@ -23,11 +24,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     gap: 4,
-  },
-  check: {
-    color: colors.goldBright,
-    fontSize: 11,
-    fontWeight: "600",
   },
   text: {
     color: colors.paper,

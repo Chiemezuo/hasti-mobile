@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -10,7 +11,7 @@ import { logout } from "@/api/endpoints/auth";
 import { disconnect } from "@/auth/realtime";
 
 interface MenuRowProps {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   badge?: string;
@@ -20,7 +21,9 @@ interface MenuRowProps {
 function MenuRow({ icon, label, onPress, badge, destructive }: MenuRowProps) {
   return (
     <TouchableOpacity style={styles.menuRow} onPress={onPress}>
-      <Text style={styles.menuIcon}>{icon}</Text>
+      <View style={styles.menuIcon}>
+        <Ionicons name={icon} size={20} color={destructive ? colors.error : colors.ink} />
+      </View>
       <Text
         variant="body"
         style={[styles.menuLabel, destructive && { color: colors.error }]}
@@ -30,7 +33,7 @@ function MenuRow({ icon, label, onPress, badge, destructive }: MenuRowProps) {
       {badge && (
         <StatusChip label={badge} family="attention" />
       )}
-      <Text style={styles.menuChevron}>›</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </TouchableOpacity>
   );
 }
@@ -94,21 +97,21 @@ export function AccountScreen() {
       <View style={styles.section}>
         <Text variant="label" style={styles.sectionLabel}>Profile</Text>
         <View style={styles.menuCard}>
-          <MenuRow icon="👤" label="Edit profile" onPress={() => navigation.navigate("Profile")} />
+          <MenuRow icon="person-outline" label="Edit profile" onPress={() => navigation.navigate("Profile")} />
           <View style={styles.divider} />
-          <MenuRow icon="🔑" label="Change password" onPress={() => navigation.navigate("ChangePassword")} />
+          <MenuRow icon="key-outline" label="Change password" onPress={() => navigation.navigate("ChangePassword")} />
           <View style={styles.divider} />
-          <MenuRow icon="📱" label="Devices & sessions" onPress={() => navigation.navigate("Sessions")} />
+          <MenuRow icon="phone-portrait-outline" label="Devices & sessions" onPress={() => navigation.navigate("Sessions")} />
         </View>
       </View>
 
       <View style={styles.section}>
         <Text variant="label" style={styles.sectionLabel}>Finance</Text>
         <View style={styles.menuCard}>
-          <MenuRow icon="💳" label="Wallet" onPress={() => navigation.navigate("Wallet")} />
+          <MenuRow icon="wallet-outline" label="Wallet" onPress={() => navigation.navigate("Wallet")} />
           <View style={styles.divider} />
           <MenuRow
-            icon="🪪"
+            icon="id-card-outline"
             label="Identity verification"
             onPress={() => navigation.navigate("Kyc")}
             badge={user?.kycApproved ? undefined : "Required"}
@@ -119,25 +122,25 @@ export function AccountScreen() {
       <View style={styles.section}>
         <Text variant="label" style={styles.sectionLabel}>Notifications</Text>
         <View style={styles.menuCard}>
-          <MenuRow icon="🔔" label="Notifications" onPress={() => navigation.navigate("Notifications")} />
+          <MenuRow icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate("Notifications")} />
           <View style={styles.divider} />
-          <MenuRow icon="⚙️" label="Notification preferences" onPress={() => navigation.navigate("NotificationPrefs")} />
+          <MenuRow icon="settings-outline" label="Notification preferences" onPress={() => navigation.navigate("NotificationPrefs")} />
         </View>
       </View>
 
       <View style={styles.section}>
         <Text variant="label" style={styles.sectionLabel}>Data & privacy</Text>
         <View style={styles.menuCard}>
-          <MenuRow icon="📤" label="Export my data" onPress={() => {}} />
+          <MenuRow icon="download-outline" label="Export my data" onPress={() => {}} />
           <View style={styles.divider} />
-          <MenuRow icon="ℹ️" label="Terms & privacy" onPress={() => {}} />
+          <MenuRow icon="information-circle-outline" label="Terms & privacy" onPress={() => {}} />
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.menuCard}>
           <MenuRow
-            icon="🚪"
+            icon="log-out-outline"
             label="Sign out"
             onPress={handleLogout}
             destructive
@@ -193,9 +196,8 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.sm,
   },
-  menuIcon: { fontSize: 20, width: 28 },
+  menuIcon: { width: 28, alignItems: "center" },
   menuLabel: { flex: 1 },
-  menuChevron: { color: colors.muted, fontSize: 18 },
   divider: { height: 1, backgroundColor: colors.line, marginLeft: 60 },
   versionText: { marginTop: spacing.xl },
 });

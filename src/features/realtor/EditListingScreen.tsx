@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPropertyById } from "@/api/endpoints/properties";
 import { updateListingStatus } from "@/api/endpoints/realtor";
@@ -63,9 +64,12 @@ export function EditListingScreen() {
         <StatusChip label={statusLabel} family={chipFamily} />
       </View>
 
-      <Text variant="body" muted style={styles.address}>
-        📍 {property.address}, {property.city}
-      </Text>
+      <View style={styles.addressRow}>
+        <Ionicons name="location-outline" size={14} color={colors.muted} />
+        <Text variant="body" muted style={styles.address}>
+          {property.address}, {property.city}
+        </Text>
+      </View>
 
       {/* Actions */}
       {transitions.length > 0 && (
@@ -126,7 +130,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.base },
   statusRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, marginBottom: spacing.sm },
-  address: { marginBottom: spacing.xl },
+  addressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: spacing.xl },
+  address: {},
   actionsSection: { marginBottom: spacing.xl },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
   section: { marginBottom: spacing.xl },
