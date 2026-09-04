@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
@@ -30,6 +31,7 @@ import { Text } from "@/components/ui/Text";
 import { formatNaira } from "@/lib/money";
 import { OFFER_STATUS_LABELS, OFFER_STATUS_CHIP_FAMILY } from "@/lib/escrow-labels";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { isMessageMine } from "@/lib/chat";
 import { joinConversation, leaveConversation, sendTyping } from "@/auth/realtime";
 import { putToStorage, getContentType } from "@/lib/upload";
 import { getAccessToken } from "@/auth/token-store";
@@ -148,7 +150,7 @@ export function ConversationThreadScreen() {
       const optimistic: Message = {
         id: `opt-${Date.now()}`,
         conversationId: id,
-        senderId: null,
+        senderId: currentUserId ?? null,
         senderType: "USER",
         body: t,
         offerId: null,
@@ -304,9 +306,14 @@ export function ConversationThreadScreen() {
   const activeOfferIsMine =
     activeOffer !== null && currentUserId !== undefined && activeOffer.makerId === currentUserId;
   const isBuyer = conversation?.role === "buyer";
+  const offerById = useMemo(
+    () => new Map((offersData?.offers ?? []).map((o) => [o.id, o])),
+    [offersData]
+  );
 
   function renderMessage({ item }: { item: Message }) {
-    const isOwn = item.mine;
+    const isOwn = isMessageMine(item, currentUserId);
+    const offer = item.offerId ? offerById.get(item.offerId) : undefined;
     return (
       <View
         style={[
@@ -318,15 +325,31 @@ export function ConversationThreadScreen() {
           style={[
             styles.bubble,
             isOwn ? styles.ownBubble : styles.theirBubble,
+            offer && styles.offerBubble,
           ]}
         >
-          {item.body && (
-            <Text
-              variant="body"
-              style={isOwn ? styles.ownText : styles.theirText}
-            >
-              {item.body}
-            </Text>
+          {offer ? (
+            <View style={styles.offerCard}>
+              <Text variant="bodySm" muted>
+                {isOwn ? "Your offer" : "Offer received"}
+              </Text>
+              <Text variant="price" style={styles.offerCardAmount}>
+                {formatNaira(offer.amount)}
+              </Text>
+              <StatusChip
+                label={OFFER_STATUS_LABELS[offer.status]}
+                family={OFFER_STATUS_CHIP_FAMILY[offer.status]}
+              />
+            </View>
+          ) : (
+            item.body && (
+              <Text
+                variant="body"
+                style={isOwn ? styles.ownText : styles.theirText}
+              >
+                {item.body}
+              </Text>
+            )
           )}
           {item.attachment && (
             <TouchableOpacity
@@ -350,8 +373,12 @@ export function ConversationThreadScreen() {
                 />
               ) : (
                 <View style={styles.attachmentPill}>
+                  <Ionicons
+                    name={item.attachment.type === "IMAGE" ? "image-outline" : "document-outline"}
+                    size={14}
+                    color={isOwn ? colors.blueInk : colors.blue}
+                  />
                   <Text style={[styles.attachmentLabel, isOwn ? styles.ownText : {}]}>
-                    {item.attachment.type === "IMAGE" ? "🖼️" : "📄"}{" "}
                     {item.attachment.status === "PENDING" ? "Processing…" : item.attachment.type === "IMAGE" ? "Photo" : "Document"}
                   </Text>
                 </View>
@@ -531,7 +558,7 @@ export function ConversationThreadScreen() {
                 setShowOfferSheet(!showOfferSheet);
               }}
             >
-              <Text style={styles.composerIcon}>💰</Text>
+              <Ionicons name="cash-outline" size={22} color={colors.blue} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -542,7 +569,7 @@ export function ConversationThreadScreen() {
             {attachmentUploading ? (
               <ActivityIndicator size="small" color={colors.blue} />
             ) : (
-              <Text style={styles.composerIcon}>📎</Text>
+              <Ionicons name="attach-outline" size={22} color={colors.blue} />
             )}
           </TouchableOpacity>
           <TextInput
@@ -561,13 +588,14 @@ export function ConversationThreadScreen() {
             onPress={handleSend}
             disabled={!text.trim() || sendMutation.isPending}
           >
-            <Text style={styles.sendIcon}>➤</Text>
+            <Ionicons name="send" size={16} color={colors.paper} />
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.lockedBanner}>
+          <Ionicons name="lock-closed-outline" size={14} color={colors.muted} />
           <Text variant="bodySm" muted center>
-            🔒 This conversation is locked
+            This conversation is locked
           </Text>
         </View>
       )}
@@ -648,6 +676,13 @@ const styles = StyleSheet.create({
   },
   ownText: { color: colors.blueInk },
   theirText: { color: colors.ink },
+  offerBubble: {
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.gold,
+  },
+  offerCard: { gap: 4, minWidth: 160 },
+  offerCardAmount: { color: colors.ink },
   attachmentLabel: { color: colors.blue, fontWeight: "600" },
   timestamp: { fontSize: 11, color: colors.muted, marginTop: 4, alignSelf: "flex-end" },
   offerSheet: {
@@ -698,7 +733,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  composerIcon: { fontSize: 20 },
   attachmentImage: {
     width: 200,
     height: 150,
@@ -706,6 +740,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   attachmentPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 6,
   },
@@ -733,6 +770,10 @@ const styles = StyleSheet.create({
   sendBtnDisabled: { opacity: 0.4 },
   sendIcon: { color: colors.paper, fontSize: 16 },
   lockedBanner: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
     padding: spacing.base,
     backgroundColor: colors.bg,
     borderTopWidth: 1,
