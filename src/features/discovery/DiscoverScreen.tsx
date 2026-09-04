@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ListRenderItem,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,17 +19,27 @@ import { Text } from "@/components/ui/Text";
 import { ListingCard } from "@/components/ui/ListingCard";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { useNavigation } from "@react-navigation/native";
+import { useAuthStore } from "@/auth/store";
 import { useDiscoveryStore, filtersToSearchFilter, hasActiveFilters } from "./discoveryStore";
 
 const DISCOVERY_CAP = 120;
+
+const CATEGORY_TYPES = ["SALE", "RENT", "LEASE", "SHORT_STAY"] as const;
+const CATEGORY_LABELS: Record<string, string> = {
+  SALE: "Buy",
+  RENT: "Rent",
+  LEASE: "Lease",
+  SHORT_STAY: "Shortlets",
+};
 
 export function DiscoverScreen() {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
-  const { filters } = useDiscoveryStore();
+  const { filters, setFilters } = useDiscoveryStore();
   const filtersActive = hasActiveFilters(filters);
+  const user = useAuthStore((s) => s.user);
 
   const {
     data,
@@ -94,6 +105,54 @@ export function DiscoverScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Brand header */}
+      <View style={styles.headerRow}>
+        <View style={styles.brandRow}>
+          <Image source={require("../../../assets/icon.png")} style={styles.logoMark} />
+          <Text variant="h3" style={styles.brandName}>Hasti</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={() => navigation.navigate("AccountTab", { screen: "Notifications" })}
+          >
+            <Ionicons name="notifications-outline" size={22} color={colors.ink} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("AccountTab", { screen: "Profile" })}>
+            {user?.profile?.avatarUrl ? (
+              <Image source={{ uri: user.profile.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text variant="bodySm" style={{ color: colors.blue, fontWeight: "700" }}>
+                  {user?.profile?.displayName?.[0]?.toUpperCase() ?? "?"}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Category tabs */}
+      <View style={styles.categoryRow}>
+        {CATEGORY_TYPES.map((type) => {
+          const active = filters.type === type;
+          return (
+            <TouchableOpacity
+              key={type}
+              style={[styles.categoryChip, active && styles.categoryChipActive]}
+              onPress={() => setFilters({ ...filters, type: active ? undefined : type })}
+            >
+              <Text
+                variant="bodySm"
+                style={active ? { color: colors.paper, fontWeight: "600" } : { color: colors.ink }}
+              >
+                {CATEGORY_LABELS[type]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Search bar */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
@@ -173,6 +232,41 @@ export function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+  },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  logoMark: { width: 26, height: 26, borderRadius: 6 },
+  brandName: { color: colors.blueDeep },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.base },
+  avatar: { width: 30, height: 30, borderRadius: 15 },
+  avatarPlaceholder: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.blueSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.base,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paper,
+  },
+  categoryChipActive: { backgroundColor: colors.blueDeep, borderColor: colors.blueDeep },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

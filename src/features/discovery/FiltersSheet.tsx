@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/Button";
 import { geoSuggest } from "@/api/endpoints/properties";
 import { useDiscoveryStore, type ActiveFilters } from "./discoveryStore";
 
-const LISTING_TYPES = ["BUY", "RENT", "LEASE", "SHORT_STAY"] as const;
+const LISTING_TYPES = ["SALE", "RENT", "LEASE", "SHORT_STAY"] as const;
 const LISTING_TYPE_LABELS: Record<string, string> = {
-  BUY: "For sale",
+  SALE: "For sale",
   RENT: "For rent",
   LEASE: "Lease",
   SHORT_STAY: "Short stay",
