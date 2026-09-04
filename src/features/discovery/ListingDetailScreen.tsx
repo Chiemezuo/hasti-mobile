@@ -39,6 +39,7 @@ export function ListingDetailScreen() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const [activeImage, setActiveImage] = useState(0);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   // 0 = gallery at resting height (300px), 1 = gallery fills the screen
   const expansionAnim = useRef(new Animated.Value(0)).current;
@@ -337,10 +338,44 @@ export function ListingDetailScreen() {
           {/* Description */}
           <View style={styles.section}>
             <Text variant="label">About this property</Text>
-            <Text variant="body" style={styles.description}>
+            <Text
+              variant="body"
+              style={styles.description}
+              numberOfLines={descExpanded ? undefined : 3}
+            >
               {property.description}
             </Text>
+            <TouchableOpacity onPress={() => setDescExpanded((v) => !v)}>
+              <Text variant="bodySm" style={styles.readMore}>
+                {descExpanded ? "Read less" : "Read more"}
+              </Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Gallery */}
+          {images.length > 1 && (
+            <View style={styles.section}>
+              <Text variant="label">Gallery</Text>
+              <View style={styles.galleryGrid}>
+                {images.slice(0, 4).map((img, i) => (
+                  <TouchableOpacity key={img.id} onPress={expandGallery} style={styles.galleryThumb}>
+                    <Image
+                      source={{ uri: mediaUrl(img.thumbnailKeys?.["400"] ?? img.key) }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                    {i === 3 && images.length > 4 && (
+                      <View style={styles.galleryMoreOverlay}>
+                        <Text variant="bodySm" style={{ color: colors.paper, fontWeight: "700" }}>
+                          +{images.length - 4}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Amenities */}
           {property.amenities.length > 0 && (
@@ -488,6 +523,21 @@ const styles = StyleSheet.create({
   specItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   section: { marginTop: spacing.xl },
   description: { marginTop: spacing.sm, lineHeight: 24 },
+  readMore: { color: colors.blue, fontWeight: "600", marginTop: 4 },
+  galleryGrid: { flexDirection: "row", gap: 8, marginTop: spacing.sm },
+  galleryThumb: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: colors.blueSoft,
+  },
+  galleryMoreOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(8,24,45,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   amenitiesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
