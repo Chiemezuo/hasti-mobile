@@ -8,11 +8,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
-  splash: {
-    image: "./assets/splash.png",
-    resizeMode: "contain",
-    backgroundColor: "#081c36",
-  },
   assetBundlePatterns: ["**/*"],
   web: {
     favicon: "./assets/favicon.png",
@@ -44,6 +39,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   plugins: [
+    "expo-font",
+    "expo-image",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/splash.png",
+        resizeMode: "contain",
+        backgroundColor: "#081c36",
+      },
+    ],
+    "expo-status-bar",
     [
       "@rnmapbox/maps",
       {
