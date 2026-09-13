@@ -48,7 +48,7 @@ const stackOptions = {
 function DiscoverStackNav() {
   return (
     <DiscoverStack.Navigator screenOptions={stackOptions}>
-      <DiscoverStack.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover" }} />
+      <DiscoverStack.Screen name="Discover" component={DiscoverScreen} options={{ headerShown: false }} />
       <DiscoverStack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: "", headerTransparent: true }} />
       <DiscoverStack.Screen name="MapView" component={MapViewScreen} options={{ title: "Map view" }} />
       <DiscoverStack.Screen

@@ -180,14 +180,14 @@ export function DiscoverScreen() {
       <View style={styles.headerRow}>
         <View style={styles.brandRow}>
           <Image source={require("../../../assets/icon.png")} style={styles.logoMark} />
-          <Text variant="h3" style={styles.brandName}>Hasti</Text>
+          <Text variant="h2" style={styles.brandName}>Hasti</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             onPress={() => navigation.navigate("AccountTab", { screen: "Notifications" })}
           >
-            <Ionicons name="notifications-outline" size={22} color={colors.ink} />
+            <Ionicons name="notifications-outline" size={24} color={colors.ink} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("AccountTab", { screen: "Profile" })}>
             {user?.profile?.avatarUrl ? (
@@ -326,16 +326,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.base,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  logoMark: { width: 26, height: 26, borderRadius: 6 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  logoMark: { width: 34, height: 34, borderRadius: 8 },
   brandName: { color: colors.blueDeep },
   headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.base },
-  avatar: { width: 30, height: 30, borderRadius: 15 },
+  avatar: { width: 38, height: 38, borderRadius: 19 },
   avatarPlaceholder: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.blueSoft,
     alignItems: "center",
     justifyContent: "center",

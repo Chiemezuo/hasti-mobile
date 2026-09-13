@@ -5,25 +5,26 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  FlatList,
   ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii, fonts } from "@/theme";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
-import { geoSuggest } from "@/api/endpoints/properties";
-import { useDiscoveryStore, type ActiveFilters } from "./discoveryStore";
+import { geoSuggest, getProperties } from "@/api/endpoints/properties";
+import { useDiscoveryStore, filtersToSearchFilter, type ActiveFilters } from "./discoveryStore";
 
 const LISTING_TYPES = ["SALE", "RENT", "LEASE", "SHORT_STAY"] as const;
 const LISTING_TYPE_LABELS: Record<string, string> = {
-  SALE: "For sale",
-  RENT: "For rent",
+  SALE: "Buy",
+  RENT: "Rent",
   LEASE: "Lease",
-  SHORT_STAY: "Short stay",
+  SHORT_STAY: "Shortlets",
 };
-const BED_OPTIONS = ["1", "2", "3", "4", "5+"];
+const ROOM_OPTIONS = ["Any", "1", "2", "3", "4", "5+"];
+const POPULAR_CITIES = ["Lagos", "Abuja", "Port Harcourt", "Enugu", "Kano", "Ibadan"];
 
 interface GeoSuggestion {
   label: string;
@@ -40,6 +41,7 @@ export function FiltersSheet() {
   const [minPrice, setMinPrice] = useState(filters.minPrice ?? "");
   const [maxPrice, setMaxPrice] = useState(filters.maxPrice ?? "");
   const [bedrooms, setBedrooms] = useState(filters.bedrooms ?? "");
+  const [bathrooms, setBathrooms] = useState(filters.bathrooms ?? "");
   const [locationText, setLocationText] = useState(filters.city ?? "");
   const [verifiedOnly, setVerifiedOnly] = useState(filters.verifiedOnly ?? false);
 
@@ -79,31 +81,55 @@ export function FiltersSheet() {
     setSuggestions([]);
   }
 
+  function pickCity(city: string) {
+    setSelectedGeo(null);
+    setSuggestions([]);
+    setLocationText((prev) => (prev === city ? "" : city));
+  }
+
   function clearLocation() {
     setSelectedGeo(null);
     setLocationText("");
     setSuggestions([]);
   }
 
+  const draftFilters: ActiveFilters = {
+    ...(type ? { type } : {}),
+    ...(minPrice ? { minPrice } : {}),
+    ...(maxPrice ? { maxPrice } : {}),
+    ...(bedrooms && bedrooms !== "Any" ? { bedrooms } : {}),
+    ...(bathrooms && bathrooms !== "Any" ? { bathrooms } : {}),
+    ...(verifiedOnly ? { verifiedOnly: true } : {}),
+    ...(selectedGeo
+      ? {
+          city: selectedGeo.label,
+          lat: selectedGeo.lat,
+          lng: selectedGeo.lng,
+          ...(selectedGeo.bbox ? { bbox: JSON.stringify(selectedGeo.bbox) } : {}),
+        }
+      : locationText
+      ? { city: locationText }
+      : {}),
+  };
+
+  // Live result count for the draft filters, debounced so we're not
+  // re-querying on every keystroke.
+  const [debouncedDraft, setDebouncedDraft] = useState(draftFilters);
+  const draftDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+    draftDebounceRef.current = setTimeout(() => setDebouncedDraft(draftFilters), 400);
+    return () => { if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, minPrice, maxPrice, bedrooms, bathrooms, verifiedOnly, locationText, selectedGeo]);
+
+  const { data: countData, isFetching: countLoading } = useQuery({
+    queryKey: ["properties-count", debouncedDraft],
+    queryFn: () => getProperties({ ...filtersToSearchFilter(debouncedDraft), limit: 1 }),
+  });
+
   function handleApply() {
-    const next: ActiveFilters = {
-      ...(type ? { type } : {}),
-      ...(minPrice ? { minPrice } : {}),
-      ...(maxPrice ? { maxPrice } : {}),
-      ...(bedrooms ? { bedrooms } : {}),
-      ...(verifiedOnly ? { verifiedOnly: true } : {}),
-      ...(selectedGeo
-        ? {
-            city: selectedGeo.label,
-            lat: selectedGeo.lat,
-            lng: selectedGeo.lng,
-            ...(selectedGeo.bbox ? { bbox: JSON.stringify(selectedGeo.bbox) } : {}),
-          }
-        : locationText
-        ? { city: locationText }
-        : {}),
-    };
-    setFilters(next);
+    setFilters(draftFilters);
     navigation.goBack();
   }
 
@@ -112,6 +138,7 @@ export function FiltersSheet() {
     setMinPrice("");
     setMaxPrice("");
     setBedrooms("");
+    setBathrooms("");
     setLocationText("");
     setVerifiedOnly(false);
     setSelectedGeo(null);
@@ -123,83 +150,39 @@ export function FiltersSheet() {
     <View style={styles.container}>
       <View style={styles.handle} />
       <View style={styles.header}>
-        <Text variant="h2">Filters</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+          <Ionicons name="close" size={18} color={colors.ink} />
+        </TouchableOpacity>
+        <Text variant="h3">Filters</Text>
         <TouchableOpacity onPress={handleClear}>
           <Text variant="bodySm" style={{ color: colors.blue }}>Clear all</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Category tabs */}
+      <View style={styles.typeRow}>
+        {LISTING_TYPES.map((t) => (
+          <TouchableOpacity
+            key={t}
+            style={[styles.typeChip, type === t && styles.chipSelected]}
+            onPress={() => setType(type === t ? "" : t)}
+          >
+            <Text variant="bodySm" style={type === t ? { color: colors.paper, fontWeight: "600" } : { color: colors.ink }}>
+              {LISTING_TYPE_LABELS[t]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Property type */}
-        <View style={styles.section}>
-          <Text variant="label">Property type</Text>
-          <View style={styles.typeRow}>
-            {LISTING_TYPES.map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.typeChip, type === t && styles.chipSelected]}
-                onPress={() => setType(type === t ? "" : t)}
-              >
-                <Text variant="bodySm" style={type === t ? { color: colors.paper } : { color: colors.ink }}>
-                  {LISTING_TYPE_LABELS[t]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Price range */}
-        <View style={styles.section}>
-          <Text variant="label">Price range (₦)</Text>
-          <View style={styles.priceRow}>
-            <View style={[styles.priceBox, { flex: 1 }]}>
-              <Text style={styles.prefix}>₦</Text>
-              <TextInput
-                style={styles.priceInput}
-                placeholder="Min"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="numeric"
-                value={minPrice}
-                onChangeText={setMinPrice}
-              />
-            </View>
-            <View style={[styles.priceBox, { flex: 1 }]}>
-              <Text style={styles.prefix}>₦</Text>
-              <TextInput
-                style={styles.priceInput}
-                placeholder="Max"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="numeric"
-                value={maxPrice}
-                onChangeText={setMaxPrice}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Bedrooms */}
-        <View style={styles.section}>
-          <Text variant="label">Minimum bedrooms</Text>
-          <View style={styles.bedsRow}>
-            {BED_OPTIONS.map((n) => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.bedChip, bedrooms === n && styles.chipSelected]}
-                onPress={() => setBedrooms(bedrooms === n ? "" : n)}
-              >
-                <Text variant="bodySm" style={bedrooms === n ? { color: colors.paper } : undefined}>{n}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
         {/* Location with autosuggest */}
         <View style={styles.section}>
           <Text variant="label">Location</Text>
           <View style={styles.locationBox}>
+            <Ionicons name="search-outline" size={15} color={colors.muted} />
             <TextInput
               style={styles.locationInput}
-              placeholder="City, area, or address…"
+              placeholder="Search city…"
               placeholderTextColor={colors.placeholder}
               value={locationText}
               onChangeText={(t) => { setSelectedGeo(null); setLocationText(t); }}
@@ -229,6 +212,83 @@ export function FiltersSheet() {
               ))}
             </View>
           )}
+
+          {/* Popular city quick-picks */}
+          <View style={styles.cityChipRow}>
+            {POPULAR_CITIES.map((city) => {
+              const active = locationText === city && !selectedGeo;
+              return (
+                <TouchableOpacity
+                  key={city}
+                  style={[styles.cityChip, active && styles.chipSelected]}
+                  onPress={() => pickCity(city)}
+                >
+                  <Ionicons name="location-outline" size={12} color={active ? colors.paper : colors.muted} />
+                  <Text variant="bodySm" style={active ? { color: colors.paper } : { color: colors.ink }}>
+                    {city}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Price range */}
+        <View style={styles.section}>
+          <Text variant="label">Budget (₦)</Text>
+          <View style={styles.priceRow}>
+            <View style={[styles.priceBox, { flex: 1 }]}>
+              <Text style={styles.prefix}>₦</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Min"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="numeric"
+                value={minPrice}
+                onChangeText={setMinPrice}
+              />
+            </View>
+            <View style={[styles.priceBox, { flex: 1 }]}>
+              <Text style={styles.prefix}>₦</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Max"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="numeric"
+                value={maxPrice}
+                onChangeText={setMaxPrice}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Rooms & spaces */}
+        <View style={styles.section}>
+          <Text variant="label">Rooms & spaces</Text>
+          <Text variant="bodySm" muted style={styles.roomLabel}>Bedrooms</Text>
+          <View style={styles.bedsRow}>
+            {ROOM_OPTIONS.map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={[styles.bedChip, (bedrooms === n || (!bedrooms && n === "Any")) && styles.chipSelected]}
+                onPress={() => setBedrooms(n === "Any" ? "" : n)}
+              >
+                <Text variant="bodySm" style={(bedrooms === n || (!bedrooms && n === "Any")) ? { color: colors.paper } : undefined}>{n}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text variant="bodySm" muted style={styles.roomLabel}>Bathrooms</Text>
+          <View style={styles.bedsRow}>
+            {ROOM_OPTIONS.map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={[styles.bedChip, (bathrooms === n || (!bathrooms && n === "Any")) && styles.chipSelected]}
+                onPress={() => setBathrooms(n === "Any" ? "" : n)}
+              >
+                <Text variant="bodySm" style={(bathrooms === n || (!bathrooms && n === "Any")) ? { color: colors.paper } : undefined}>{n}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Verified only */}
@@ -246,7 +306,15 @@ export function FiltersSheet() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button label="Show results" onPress={handleApply} />
+        <TouchableOpacity onPress={handleClear}>
+          <Text variant="bodySm" style={{ color: colors.muted, fontWeight: "600" }}>Reset all</Text>
+        </TouchableOpacity>
+        <Button
+          label={countLoading ? "Show results" : `Show ${countData?.total ?? 0} results`}
+          onPress={handleApply}
+          fullWidth={false}
+          style={styles.applyBtn}
+        />
       </View>
     </View>
   );
@@ -261,12 +329,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     paddingHorizontal: spacing.base, paddingBottom: spacing.base,
-    borderBottomWidth: 1, borderColor: colors.line,
+  },
+  closeBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.bg, alignItems: "center", justifyContent: "center",
   },
   scroll: { flex: 1 },
-  content: { padding: spacing.base, paddingBottom: spacing.xl },
+  content: { padding: spacing.base, paddingTop: spacing.sm, paddingBottom: spacing.xl },
   section: { marginBottom: spacing.xl },
-  typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: spacing.sm },
+  typeRow: {
+    flexDirection: "row", flexWrap: "wrap", gap: 8,
+    paddingHorizontal: spacing.base, paddingBottom: spacing.base,
+    borderBottomWidth: 1, borderColor: colors.line,
+  },
   typeChip: {
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: radii.chip, borderWidth: 1, borderColor: colors.line,
@@ -281,14 +356,15 @@ const styles = StyleSheet.create({
   },
   prefix: { color: colors.muted, marginRight: 4 },
   priceInput: { flex: 1, fontFamily: fonts.hankenRegular, fontSize: 15, color: colors.ink },
-  bedsRow: { flexDirection: "row", gap: 8, marginTop: spacing.sm },
+  roomLabel: { marginTop: spacing.sm, marginBottom: 4 },
+  bedsRow: { flexDirection: "row", gap: 8 },
   bedChip: {
     width: 44, height: 44, borderRadius: 22,
     borderWidth: 1, borderColor: colors.line,
     alignItems: "center", justifyContent: "center",
   },
   locationBox: {
-    flexDirection: "row", alignItems: "center",
+    flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.bg, borderRadius: radii.card,
     borderWidth: 1, borderColor: colors.line,
     paddingHorizontal: spacing.sm, height: 48, marginTop: spacing.sm,
@@ -303,6 +379,12 @@ const styles = StyleSheet.create({
   suggestRow: { paddingVertical: 12, paddingHorizontal: spacing.base },
   suggestRowContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   suggestDivider: { borderBottomWidth: 1, borderColor: colors.line },
+  cityChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: spacing.sm },
+  cityChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: radii.chip, borderWidth: 1, borderColor: colors.line,
+  },
   toggleRow: {
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between",
@@ -314,5 +396,9 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.blueDeep },
   thumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.paper },
   thumbOn: { alignSelf: "flex-end" },
-  footer: { padding: spacing.base, borderTopWidth: 1, borderColor: colors.line },
+  footer: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    padding: spacing.base, borderTopWidth: 1, borderColor: colors.line,
+  },
+  applyBtn: { paddingHorizontal: 24 },
 });

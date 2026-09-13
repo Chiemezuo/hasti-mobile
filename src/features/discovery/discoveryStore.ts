@@ -6,6 +6,7 @@ export interface ActiveFilters {
   minPrice?: string;
   maxPrice?: string;
   bedrooms?: string;
+  bathrooms?: string;
   city?: string;
   state?: string;
   verifiedOnly?: boolean;
@@ -33,6 +34,7 @@ export function filtersToSearchFilter(f: ActiveFilters, q?: string): SearchFilte
     ...(f.minPrice ? { minPrice: f.minPrice } : {}),
     ...(f.maxPrice ? { maxPrice: f.maxPrice } : {}),
     ...(f.bedrooms ? { bedrooms: Number(f.bedrooms.replace("+", "")) } : {}),
+    ...(f.bathrooms ? { bathrooms: Number(f.bathrooms.replace("+", "")) } : {}),
     ...(f.city ? { city: f.city } : {}),
     ...(f.state ? { state: f.state } : {}),
     ...(f.verifiedOnly ? { verifiedOnly: true } : {}),
