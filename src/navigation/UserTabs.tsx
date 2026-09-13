@@ -51,7 +51,18 @@ function DiscoverStackNav() {
       <DiscoverStack.Screen name="Discover" component={DiscoverScreen} options={{ title: "Discover" }} />
       <DiscoverStack.Screen name="ListingDetail" component={ListingDetailScreen} options={{ title: "", headerTransparent: true }} />
       <DiscoverStack.Screen name="MapView" component={MapViewScreen} options={{ title: "Map view" }} />
-      <DiscoverStack.Screen name="Filters" component={FiltersSheet} options={{ title: "Filters", presentation: "modal" }} />
+      <DiscoverStack.Screen
+        name="Filters"
+        component={FiltersSheet}
+        options={{
+          headerShown: false,
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.8, 1],
+          sheetGrabberVisible: false,
+          sheetCornerRadius: 24,
+          contentStyle: { backgroundColor: colors.paper },
+        }}
+      />
     </DiscoverStack.Navigator>
   );
 }

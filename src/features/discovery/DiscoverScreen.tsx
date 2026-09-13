@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   FlatList,
+  ScrollView,
   TextInput,
   TouchableOpacity,
   RefreshControl,
@@ -23,6 +24,7 @@ import { useAuthStore } from "@/auth/store";
 import { useDiscoveryStore, filtersToSearchFilter, hasActiveFilters } from "./discoveryStore";
 
 const DISCOVERY_CAP = 120;
+const SECTION_CARD_WIDTH = 220;
 
 const CATEGORY_TYPES = ["SALE", "RENT", "LEASE", "SHORT_STAY"] as const;
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,6 +34,62 @@ const CATEGORY_LABELS: Record<string, string> = {
   SHORT_STAY: "Shortlets",
 };
 
+interface CategorySectionProps {
+  type: (typeof CATEGORY_TYPES)[number];
+  favSet: Set<string>;
+  onToggleFavorite: (id: string) => void;
+  onPressItem: (id: string) => void;
+  onSeeAll: () => void;
+}
+
+function CategorySection({ type, favSet, onToggleFavorite, onPressItem, onSeeAll }: CategorySectionProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["properties-section", type],
+    queryFn: () => getProperties({ type, limit: 10 }),
+  });
+
+  const items = data?.items ?? [];
+  if (!isLoading && items.length === 0) return null;
+
+  return (
+    <View style={styles.sectionBlock}>
+      <View style={styles.sectionHeader}>
+        <Text variant="h3">{CATEGORY_LABELS[type]}</Text>
+        <TouchableOpacity onPress={onSeeAll}>
+          <Text variant="bodySm" style={{ color: colors.blue }}>See all</Text>
+        </TouchableOpacity>
+      </View>
+      {isLoading ? (
+        <View style={styles.sectionSkeletonRow}>
+          {[1, 2].map((k) => (
+            <View key={k} style={{ width: SECTION_CARD_WIDTH }}>
+              <CardSkeleton />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.sectionList}
+          renderItem={({ item }) => (
+            <View style={{ width: SECTION_CARD_WIDTH }}>
+              <ListingCard
+                property={item}
+                isFavorited={favSet.has(item.id)}
+                onPress={() => onPressItem(item.id)}
+                onToggleFavorite={() => onToggleFavorite(item.id)}
+              />
+            </View>
+          )}
+        />
+      )}
+    </View>
+  );
+}
+
 export function DiscoverScreen() {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
@@ -40,6 +98,11 @@ export function DiscoverScreen() {
   const { filters, setFilters } = useDiscoveryStore();
   const filtersActive = hasActiveFilters(filters);
   const user = useAuthStore((s) => s.user);
+
+  // Browsing (no search, no explicit type filter) shows type-sectioned horizontal
+  // rails instead of one long list; searching or picking a category switches to
+  // a flat, filtered results list.
+  const browsing = !submittedSearch && !filters.type;
 
   const {
     data,
@@ -60,6 +123,7 @@ export function DiscoverScreen() {
     getNextPageParam: (last) =>
       last.pageInfo.hasMore ? last.pageInfo.nextCursor ?? undefined : undefined,
     initialPageParam: undefined as string | undefined,
+    enabled: !browsing,
   });
 
   const { data: favoriteIds } = useQuery({
@@ -88,6 +152,15 @@ export function DiscoverScreen() {
     },
   });
 
+  const toggleFav = useCallback(
+    (id: string) => favoriteMutation.mutate({ id, add: !favSet.has(id) }),
+    [favoriteMutation, favSet]
+  );
+  const openListing = useCallback(
+    (id: string) => navigation.navigate("ListingDetail", { id }),
+    [navigation]
+  );
+
   const allItems = data?.pages.flatMap((p) => p.items) ?? [];
   const total = data?.pages[0]?.total ?? 0;
   const hitCap = allItems.length >= DISCOVERY_CAP;
@@ -96,12 +169,10 @@ export function DiscoverScreen() {
     <ListingCard
       property={item}
       isFavorited={favSet.has(item.id)}
-      onPress={() => navigation.navigate("ListingDetail", { id: item.id })}
-      onToggleFavorite={() =>
-        favoriteMutation.mutate({ id: item.id, add: !favSet.has(item.id) })
-      }
+      onPress={() => openListing(item.id)}
+      onToggleFavorite={() => toggleFav(item.id)}
     />
-  ), [favSet, navigation]);
+  ), [favSet, openListing, toggleFav]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -132,6 +203,42 @@ export function DiscoverScreen() {
         </View>
       </View>
 
+      {/* Search bar — filter icon lives inside the search field itself */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search-outline" size={16} color={colors.muted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by city, title, or address"
+            placeholderTextColor={colors.placeholder}
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+            onSubmitEditing={() => setSubmittedSearch(searchText)}
+          />
+          {searchText ? (
+            <TouchableOpacity onPress={() => { setSearchText(""); setSubmittedSearch(""); }}>
+              <Ionicons name="close" size={16} color={colors.muted} />
+            </TouchableOpacity>
+          ) : null}
+          <View style={styles.searchDivider} />
+          <TouchableOpacity
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+            onPress={() => navigation.navigate("Filters")}
+          >
+            <Ionicons name="options-outline" size={20} color={filtersActive ? colors.blueDeep : colors.ink} />
+            {filtersActive && <View style={styles.filterDot} />}
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={styles.mapBtn}
+          onPress={() => navigation.navigate("MapView")}
+        >
+          <Ionicons name="map-outline" size={16} color={colors.paper} />
+          <Text style={styles.mapBtnLabel}>Map</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Category tabs */}
       <View style={styles.categoryRow}>
         {CATEGORY_TYPES.map((type) => {
@@ -153,79 +260,60 @@ export function DiscoverScreen() {
         })}
       </View>
 
-      {/* Search bar */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={16} color={colors.muted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by city, title, or address"
-            placeholderTextColor={colors.placeholder}
-            value={searchText}
-            onChangeText={setSearchText}
-            returnKeyType="search"
-            onSubmitEditing={() => setSubmittedSearch(searchText)}
-          />
-          {searchText ? (
-            <TouchableOpacity onPress={() => { setSearchText(""); setSubmittedSearch(""); }}>
-              <Ionicons name="close" size={16} color={colors.muted} />
-            </TouchableOpacity>
+      {browsing ? (
+        <ScrollView contentContainerStyle={styles.browseContent}>
+          {CATEGORY_TYPES.map((type) => (
+            <CategorySection
+              key={type}
+              type={type}
+              favSet={favSet}
+              onToggleFavorite={toggleFav}
+              onPressItem={openListing}
+              onSeeAll={() => setFilters({ ...filters, type })}
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <>
+          {!isLoading && total > 0 ? (
+            <Text variant="bodySm" muted style={styles.resultsCount}>
+              {hitCap ? `Showing top ${DISCOVERY_CAP} results — refine your search to see more` : `${allItems.length} of ${total} properties`}
+            </Text>
           ) : null}
-        </View>
-        <TouchableOpacity
-          style={[styles.filterBtn, filtersActive && styles.filterBtnActive]}
-          onPress={() => navigation.navigate("Filters")}
-        >
-          <Ionicons name="options-outline" size={20} color={filtersActive ? colors.blueDeep : colors.ink} />
-          {filtersActive && <View style={styles.filterDot} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.mapBtn}
-          onPress={() => navigation.navigate("MapView")}
-        >
-          <Ionicons name="map-outline" size={16} color={colors.paper} />
-          <Text style={styles.mapBtnLabel}>Map</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Results count */}
-      {!isLoading && total > 0 ? (
-        <Text variant="bodySm" muted style={styles.resultsCount}>
-          {hitCap ? `Showing top ${DISCOVERY_CAP} results — refine your search to see more` : `${allItems.length} of ${total} properties`}
-        </Text>
-      ) : null}
-
-      <FlatList
-        data={isLoading ? [] : allItems}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          isLoading ? (
-            <View>
-              {[1, 2, 3].map((k) => <CardSkeleton key={k} />)}
-            </View>
-          ) : (
-            <View style={styles.empty}>
-              <Text variant="h3" center>No properties found</Text>
-              <Text variant="body" muted center style={{ marginTop: 8 }}>
-                Try adjusting your search or filters
-              </Text>
-            </View>
-          )
-        }
-        onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage && !hitCap) fetchNextPage();
-        }}
-        onEndReachedThreshold={0.3}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.blue}
+          <FlatList
+            data={isLoading ? [] : allItems}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              isLoading ? (
+                <View>
+                  {[1, 2, 3].map((k) => <CardSkeleton key={k} />)}
+                </View>
+              ) : (
+                <View style={styles.empty}>
+                  <Text variant="h3" center>No properties found</Text>
+                  <Text variant="body" muted center style={{ marginTop: 8 }}>
+                    Try adjusting your search or filters
+                  </Text>
+                </View>
+              )
+            }
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage && !hitCap) fetchNextPage();
+            }}
+            onEndReachedThreshold={0.3}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={colors.blue}
+              />
+            }
           />
-        }
-      />
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -252,21 +340,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  categoryRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.base,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radii.chip,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.paper,
-  },
-  categoryChipActive: { backgroundColor: colors.blueDeep, borderColor: colors.blueDeep },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -292,20 +365,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.ink,
   },
-  filterBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: colors.paper,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: "center",
-    justifyContent: "center",
+  searchDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.line,
   },
-  filterBtnActive: { borderColor: colors.blueDeep, backgroundColor: colors.blueSoft },
   filterDot: {
     position: "absolute",
-    top: 6, right: 6,
+    top: -2, right: -2,
     width: 8, height: 8,
     borderRadius: 4,
     backgroundColor: colors.blueDeep,
@@ -320,10 +387,36 @@ const styles = StyleSheet.create({
     height: 44,
   },
   mapBtnLabel: { color: colors.paper, fontSize: 13, fontWeight: "600" },
+  categoryRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.sm,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paper,
+  },
+  categoryChipActive: { backgroundColor: colors.blueDeep, borderColor: colors.blueDeep },
   resultsCount: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,
   },
   list: { padding: spacing.base },
   empty: { padding: spacing.xl, alignItems: "center" },
+  browseContent: { paddingBottom: spacing.xl },
+  sectionBlock: { marginTop: spacing.base },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.sm,
+  },
+  sectionList: { paddingHorizontal: spacing.base, gap: spacing.sm },
+  sectionSkeletonRow: { flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.base },
 });
