@@ -91,6 +91,7 @@ export function CreateListingScreen() {
                 >
                   <Text
                     variant="bodySm"
+                    numberOfLines={1}
                     style={[styles.typeSegmentLabel, selectedType === type && { color: colors.paper }]}
                   >
                     {LISTING_TYPE_LABELS[type]}
@@ -249,12 +250,15 @@ const styles = StyleSheet.create({
   field: { marginBottom: spacing.base },
   fieldLabel: { marginBottom: spacing.xs },
   counter: { textAlign: "right", marginTop: -spacing.sm },
-  typeRow: { flexDirection: "row", gap: 8 },
+  typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   typeSegment: {
-    flex: 1,
+    flexBasis: "47%",
+    flexGrow: 1,
+    minHeight: 44,
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
-    paddingHorizontal: 6,
+    paddingHorizontal: 12,
     borderRadius: radii.chip,
     borderWidth: 1,
     borderColor: colors.line,

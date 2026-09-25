@@ -24,7 +24,7 @@ import { useAuthStore } from "@/auth/store";
 import { useDiscoveryStore, filtersToSearchFilter, hasActiveFilters } from "./discoveryStore";
 
 const DISCOVERY_CAP = 120;
-const SECTION_CARD_WIDTH = 220;
+const SECTION_CARD_WIDTH = 240;
 
 const CATEGORY_TYPES = ["SALE", "RENT", "LEASE", "SHORT_STAY"] as const;
 const CATEGORY_LABELS: Record<string, string> = {
@@ -418,6 +418,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     marginBottom: spacing.sm,
   },
-  sectionList: { paddingHorizontal: spacing.base, gap: spacing.sm },
-  sectionSkeletonRow: { flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.base },
+  sectionList: { paddingHorizontal: spacing.base, gap: spacing.md },
+  sectionSkeletonRow: { flexDirection: "row", gap: spacing.md, paddingHorizontal: spacing.base },
 });

@@ -12,7 +12,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { colors, radii, spacing, shadows } from "@/theme";
+import { colors, radii, spacing, shadows, lineHeights } from "@/theme";
 import { Text } from "./Text";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { formatNaira } from "@/lib/money";
@@ -34,6 +34,22 @@ const LISTING_TYPE_LABELS: Record<string, string> = {
   LEASE: "Lease",
   SHORT_STAY: "Short stay",
 };
+
+// Compact so price + period reliably fit on one line in the narrow card layout —
+// the full "per year"/"one off" phrasing wraps to a second line on longer prices.
+const PRICE_PERIOD_LABELS: Record<string, string> = {
+  ONE_OFF: "one-off",
+  ONE_TIME: "one-off",
+  PER_NIGHT: "/ night",
+  PER_WEEK: "/ wk",
+  PER_MONTH: "/ mo",
+  PER_YEAR: "/ yr",
+  PER_ANNUM: "/ yr",
+};
+
+function formatPricePeriod(raw: string): string {
+  return PRICE_PERIOD_LABELS[raw.toUpperCase()] ?? `/ ${raw.toLowerCase().replace(/_/g, " ")}`;
+}
 
 export function ListingCard({
   property,
@@ -99,12 +115,14 @@ export function ListingCard({
 
       {/* Body */}
       <View style={styles.body}>
-        <Text variant="price">{formatNaira(property.price)}</Text>
-        {property.pricePeriod && (
-          <Text variant="bodySm" muted style={styles.period}>
-            {" "}/ {property.pricePeriod.toLowerCase().replace("_", " ")}
-          </Text>
-        )}
+        <Text variant="price" numberOfLines={1}>
+          {formatNaira(property.price)}
+          {property.pricePeriod && (
+            <Text variant="bodySm" muted style={styles.period}>
+              {" "}{formatPricePeriod(property.pricePeriod)}
+            </Text>
+          )}
+        </Text>
         <Text variant="body" style={styles.title} numberOfLines={2}>
           {property.title}
         </Text>
@@ -154,7 +172,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     overflow: "hidden",
     ...shadows.card,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   imageContainer: {
     height: 200,
@@ -211,9 +229,10 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 4,
     fontWeight: "700",
+    minHeight: lineHeights.body * 2,
   },
   period: {
-    display: "flex",
+    fontSize: 12,
   },
   locationRow: {
     flexDirection: "row",
@@ -230,6 +249,7 @@ const styles = StyleSheet.create({
   specs: {
     flexDirection: "row",
     gap: 16,
+    minHeight: lineHeights.bodySm,
   },
   specItem: {
     flexDirection: "row",
